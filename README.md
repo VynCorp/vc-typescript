@@ -1,4 +1,4 @@
-# vynco
+# @vynco/sdk
 
 TypeScript SDK for the [VynCo Swiss Corporate Intelligence API](https://vynco.ch).
 
@@ -7,17 +7,17 @@ Zero runtime dependencies. Works in Node.js 18+ and modern browsers.
 ## Installation
 
 ```bash
-npm install vynco
+npm install @vynco/sdk
 # or
-pnpm add vynco
+pnpm add @vynco/sdk
 # or
-yarn add vynco
+yarn add @vynco/sdk
 ```
 
 ## Quick Start
 
 ```typescript
-import { VyncoClient } from "vynco";
+import { VyncoClient } from "@vynco/sdk";
 
 const client = new VyncoClient({ apiKey: "vc_live_your_api_key" });
 
@@ -45,7 +45,7 @@ console.log(`Score: ${risk.data.overallScore}/100`);
 ## Configuration
 
 ```typescript
-import { VyncoClient } from "vynco";
+import { VyncoClient } from "@vynco/sdk";
 
 const client = new VyncoClient({
   apiKey: "vc_live_your_api_key",  // required — vc_live_* or vc_test_*
@@ -102,7 +102,7 @@ console.log(resp.meta.dataSource);         // X-Data-Source
 All errors extend `VyncoError` with typed subclasses:
 
 ```typescript
-import { VyncoClient, NotFoundError, RateLimitError, VyncoError } from "vynco";
+import { VyncoClient, NotFoundError, RateLimitError, VyncoError } from "@vynco/sdk";
 
 try {
   await client.companies.get("CHE-000.000.000");
