@@ -2,9 +2,11 @@ import type { VyncoClient } from "../client.js";
 import type { ResponseMeta, VyncoResponse } from "../response.js";
 import type {
   CreateWebhookRequest,
+  CreateWebhookResponse,
+  TestDeliveryResponse,
   UpdateWebhookRequest,
-  Webhook,
-  WebhookCreated,
+  WebhookDelivery,
+  WebhookSubscription,
 } from "../types.js";
 
 export class Webhooks {
@@ -15,25 +17,21 @@ export class Webhooks {
     this.#client = client;
   }
 
-  async list(): Promise<VyncoResponse<Webhook[]>> {
-    return this.#client._request("GET", "/webhooks");
+  async list(): Promise<VyncoResponse<WebhookSubscription[]>> {
+    return this.#client._request("GET", "/v1/webhooks");
   }
 
-  async create(request: CreateWebhookRequest): Promise<VyncoResponse<WebhookCreated>> {
-    return this.#client._requestWithBody("POST", "/webhooks", request);
-  }
-
-  async get(id: string): Promise<VyncoResponse<Webhook>> {
-    return this.#client._request("GET", `/webhooks/${encodeURIComponent(id)}`);
+  async create(request: CreateWebhookRequest): Promise<VyncoResponse<CreateWebhookResponse>> {
+    return this.#client._requestWithBody("POST", "/v1/webhooks", request);
   }
 
   async update(
     id: string,
     request: UpdateWebhookRequest,
-  ): Promise<VyncoResponse<Webhook>> {
+  ): Promise<VyncoResponse<WebhookSubscription>> {
     return this.#client._requestWithBody(
       "PUT",
-      `/webhooks/${encodeURIComponent(id)}`,
+      `/v1/webhooks/${encodeURIComponent(id)}`,
       request,
     );
   }
@@ -41,15 +39,23 @@ export class Webhooks {
   async delete(id: string): Promise<ResponseMeta> {
     return this.#client._requestEmpty(
       "DELETE",
-      `/webhooks/${encodeURIComponent(id)}`,
+      `/v1/webhooks/${encodeURIComponent(id)}`,
     );
   }
 
-  async test(id: string): Promise<VyncoResponse<unknown>> {
+  async test(id: string): Promise<VyncoResponse<TestDeliveryResponse>> {
     return this.#client._requestWithBody(
       "POST",
-      `/webhooks/${encodeURIComponent(id)}/test`,
+      `/v1/webhooks/${encodeURIComponent(id)}/test`,
       {},
     );
+  }
+
+  async deliveries(id: string, limit?: number): Promise<VyncoResponse<WebhookDelivery[]>> {
+    const path = `/v1/webhooks/${encodeURIComponent(id)}/deliveries`;
+    if (limit != null) {
+      return this.#client._requestWithParams("GET", path, { limit: String(limit) });
+    }
+    return this.#client._request("GET", path);
   }
 }

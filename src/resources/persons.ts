@@ -1,6 +1,6 @@
 import type { VyncoClient } from "../client.js";
 import type { VyncoResponse } from "../response.js";
-import type { Person, PersonSearchParams } from "../types.js";
+import type { BoardMember } from "../types.js";
 
 export class Persons {
   #client: VyncoClient;
@@ -10,11 +10,10 @@ export class Persons {
     this.#client = client;
   }
 
-  async get(id: string): Promise<VyncoResponse<Person>> {
-    return this.#client._request("GET", `/persons/${encodeURIComponent(id)}`);
-  }
-
-  async search(params: PersonSearchParams): Promise<VyncoResponse<Person[]>> {
-    return this.#client._requestWithBody("POST", "/persons/search", params);
+  async boardMembers(uid: string): Promise<VyncoResponse<BoardMember[]>> {
+    return this.#client._request(
+      "GET",
+      `/v1/persons/board-members/${encodeURIComponent(uid)}`,
+    );
   }
 }

@@ -1,6 +1,7 @@
 import {
   AuthenticationError,
   ConfigError,
+  ConflictError,
   DeserializeError,
   type ErrorBody,
   ForbiddenError,
@@ -13,23 +14,30 @@ import {
   ValidationError,
 } from "./errors.js";
 import { type ResponseMeta, type VyncoResponse, parseResponseMeta } from "./response.js";
+import type { ExportFile } from "./types.js";
 import {
+  Ai,
   Analytics,
   ApiKeys,
+  Auditors,
   Billing,
+  Changes,
   Companies,
   Credits,
+  Dashboard,
   Dossiers,
+  Exports,
+  Graph,
+  Health,
   Persons,
-  Settings,
-  Sync,
+  Screening,
   Teams,
-  Users,
+  Watchlists,
   Webhooks,
 } from "./resources/index.js";
 
-const VERSION = "0.1.0";
-const DEFAULT_BASE_URL = "https://api.vynco.ch/v1";
+const VERSION = "2.0.0";
+const DEFAULT_BASE_URL = "https://api.vynco.ch";
 const DEFAULT_TIMEOUT = 30_000;
 const DEFAULT_MAX_RETRIES = 2;
 const INITIAL_RETRY_DELAY = 500;
@@ -47,18 +55,24 @@ export class VyncoClient {
   readonly #timeout: number;
   readonly #maxRetries: number;
 
+  readonly health: Health;
   readonly companies: Companies;
-  readonly persons: Persons;
-  readonly dossiers: Dossiers;
+  readonly auditors: Auditors;
+  readonly dashboard: Dashboard;
+  readonly screening: Screening;
+  readonly watchlists: Watchlists;
+  readonly webhooks: Webhooks;
+  readonly exports: Exports;
+  readonly ai: Ai;
   readonly apiKeys: ApiKeys;
   readonly credits: Credits;
   readonly billing: Billing;
-  readonly webhooks: Webhooks;
   readonly teams: Teams;
-  readonly users: Users;
-  readonly settings: Settings;
+  readonly changes: Changes;
+  readonly persons: Persons;
   readonly analytics: Analytics;
-  readonly sync: Sync;
+  readonly dossiers: Dossiers;
+  readonly graph: Graph;
 
   constructor(options: VyncoClientOptions) {
     if (!options.apiKey) {
@@ -70,18 +84,24 @@ export class VyncoClient {
     this.#timeout = options.timeout ?? DEFAULT_TIMEOUT;
     this.#maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
 
+    this.health = new Health(this);
     this.companies = new Companies(this);
-    this.persons = new Persons(this);
-    this.dossiers = new Dossiers(this);
+    this.auditors = new Auditors(this);
+    this.dashboard = new Dashboard(this);
+    this.screening = new Screening(this);
+    this.watchlists = new Watchlists(this);
+    this.webhooks = new Webhooks(this);
+    this.exports = new Exports(this);
+    this.ai = new Ai(this);
     this.apiKeys = new ApiKeys(this);
     this.credits = new Credits(this);
     this.billing = new Billing(this);
-    this.webhooks = new Webhooks(this);
     this.teams = new Teams(this);
-    this.users = new Users(this);
-    this.settings = new Settings(this);
+    this.changes = new Changes(this);
+    this.persons = new Persons(this);
     this.analytics = new Analytics(this);
-    this.sync = new Sync(this);
+    this.dossiers = new Dossiers(this);
+    this.graph = new Graph(this);
   }
 
   /** @internal */
@@ -120,6 +140,22 @@ export class VyncoClient {
     const response = await this.#fetchWithRetry(method, path);
     this.#throwIfError(response, undefined);
     return parseResponseMeta(response.headers);
+  }
+
+  /** @internal — returns raw bytes for file downloads (exports, graph export). */
+  async _requestBytes(method: string, path: string): Promise<ExportFile> {
+    const response = await this.#fetchWithRetry(method, path);
+    this.#throwIfError(response, undefined);
+    const meta = parseResponseMeta(response.headers);
+    const bytes = await response.arrayBuffer();
+    const contentType = response.headers.get("content-type") ?? undefined;
+    const disposition = response.headers.get("content-disposition") ?? undefined;
+    let filename: string | undefined;
+    if (disposition) {
+      const match = disposition.match(/filename="?([^"]+)"?/);
+      if (match) filename = match[1];
+    }
+    return { bytes, contentType, filename, meta } as ExportFile & { meta: ResponseMeta };
   }
 
   async #fetchWithRetry(
@@ -215,6 +251,9 @@ export class VyncoClient {
         };
 
     switch (response.status) {
+      case 400:
+      case 422:
+        throw new ValidationError(errorBody);
       case 401:
         throw new AuthenticationError(errorBody);
       case 402:
@@ -223,15 +262,11 @@ export class VyncoClient {
         throw new ForbiddenError(errorBody);
       case 404:
         throw new NotFoundError(errorBody);
+      case 409:
+        throw new ConflictError(errorBody);
       case 429:
         throw new RateLimitError(errorBody);
       default:
-        if (response.status === 400 || response.status === 422) {
-          throw new ValidationError(errorBody);
-        }
-        if (response.status >= 500) {
-          throw new ServerError(errorBody);
-        }
         throw new ServerError(errorBody);
     }
   }

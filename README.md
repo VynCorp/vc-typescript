@@ -1,8 +1,8 @@
 # vynco
 
-TypeScript SDK for the [VynCo](https://vynco.ch) Swiss Corporate Intelligence API.
+TypeScript SDK for the [VynCo Swiss Corporate Intelligence API](https://vynco.ch).
 
-Zero runtime dependencies. Works in Node.js 18+ and browsers.
+Zero runtime dependencies. Works in Node.js 18+ and modern browsers.
 
 ## Installation
 
@@ -21,207 +21,126 @@ import { VyncoClient } from "vynco";
 
 const client = new VyncoClient({ apiKey: "vc_live_your_api_key" });
 
+// Check API health
+const health = await client.health.check();
+console.log(health.data.status);
+
 // Search companies
-const resp = await client.companies.search({ search: "Novartis", canton: "BS" });
-console.log(`Found ${resp.data.total} companies`);
-console.log(`Credits used: ${resp.meta.creditsUsed}`);
+const companies = await client.companies.list({ search: "Novartis", canton: "BS" });
+console.log(`Found ${companies.data.total} companies`);
 
 // Get company details
-const company = await client.companies.get("CHE-100.023.968");
-console.log(`${company.data.name}: ${company.data.purpose}`);
+const company = await client.companies.get("CHE-105.805.649");
+console.log(company.data.name);
 
-// Check credit balance
-const balance = await client.credits.balance();
-console.log(`Balance: ${balance.data.balance} credits`);
+// Screen a name against sanctions lists
+const screening = await client.screening.screen({ name: "Test Corp" });
+console.log(`Risk level: ${screening.data.riskLevel}`);
+
+// AI-powered risk scoring
+const risk = await client.ai.riskScore({ uid: "CHE-105.805.649" });
+console.log(`Score: ${risk.data.overallScore}/100`);
 ```
 
 ## Configuration
 
 ```typescript
+import { VyncoClient } from "vynco";
+
 const client = new VyncoClient({
-  apiKey: "vc_live_your_api_key",
-  baseUrl: "https://api.vynco.ch/v1", // default
-  timeout: 60_000,                     // default: 30s
-  maxRetries: 3,                       // default: 2
+  apiKey: "vc_live_your_api_key",  // required — vc_live_* or vc_test_*
+  baseUrl: "https://api.vynco.ch", // default
+  timeout: 30_000,                 // default: 30s
+  maxRetries: 2,                   // default: 2 (retries on 429 & 5xx)
 });
 ```
 
-API keys use the prefixes `vc_live_*` (production) and `vc_test_*` (sandbox).
+## API Coverage
 
-## Resources
+| Resource | Methods | Description |
+|----------|---------|-------------|
+| `client.health` | `check` | API health status |
+| `client.companies` | `list`, `get`, `count`, `events`, `statistics`, `compare`, `news`, `reports`, `relationships`, `hierarchy`, `fingerprint`, `nearby` | Swiss company data |
+| `client.auditors` | `history`, `tenures` | Auditor appointment history |
+| `client.dashboard` | `get` | Dashboard summary data |
+| `client.screening` | `screen` | Sanctions & watchlist screening |
+| `client.watchlists` | `list`, `create`, `delete`, `companies`, `addCompanies`, `removeCompany`, `events` | Company monitoring lists |
+| `client.webhooks` | `list`, `create`, `update`, `delete`, `test`, `deliveries` | Event delivery subscriptions |
+| `client.exports` | `create`, `get`, `download` | Bulk data exports |
+| `client.ai` | `dossier`, `search`, `riskScore` | AI-powered intelligence |
+| `client.apiKeys` | `list`, `create`, `revoke` | API key management |
+| `client.credits` | `balance`, `usage`, `history` | Credit balance & usage |
+| `client.billing` | `createCheckout`, `createPortal` | Stripe billing sessions |
+| `client.teams` | `me`, `create`, `members`, `inviteMember`, `updateMemberRole`, `removeMember`, `billingSummary` | Team management |
+| `client.changes` | `list`, `byCompany`, `statistics` | SOGC company change feed |
+| `client.persons` | `boardMembers` | Board member data |
+| `client.analytics` | `cantons`, `auditors`, `cluster`, `anomalies`, `rfmSegments`, `cohorts`, `statistics`, `candidates` | Analytics & insights |
+| `client.dossiers` | `create`, `list`, `get`, `delete` | Company dossier reports |
+| `client.graph` | `get`, `export`, `analyze` | Corporate relationship graphs |
 
-| Resource | Methods |
-|----------|---------|
-| `companies` | `search`, `get`, `count`, `statistics`, `changes`, `persons`, `dossier`, `relationships`, `hierarchy`, `compare` |
-| `persons` | `get`, `search` |
-| `dossiers` | `generate` |
-| `apiKeys` | `list`, `create`, `revoke` |
-| `credits` | `balance`, `usage`, `history` |
-| `billing` | `createCheckout`, `createPortal` |
-| `webhooks` | `list`, `create`, `get`, `update`, `delete`, `test` |
-| `teams` | `me`, `create` |
-| `users` | `me`, `updateProfile`, `changePassword` |
-| `settings` | `getPreferences`, `updatePreferences`, `getNotifications`, `updateNotifications` |
-| `analytics` | `companies`, `cantons`, `auditors`, `cluster`, `anomalies`, `rfmSegments`, `cohorts`, `crossTabulation` |
-| `sync` | `status` |
-
-### Companies
-
-```typescript
-// Search with filters and pagination
-const results = await client.companies.search({
-  search: "Nestlé",
-  canton: "VD",
-  legalForm: "AG",
-  page: 1,
-  pageSize: 20,
-});
-
-// Get by UID
-const company = await client.companies.get("CHE-100.023.968");
-
-// Count matching companies
-const count = await client.companies.count({ canton: "ZH" });
-
-// Change history
-const changes = await client.companies.changes("CHE-100.023.968");
-
-// Board members
-const persons = await client.companies.persons("CHE-100.023.968");
-
-// Company relationships and hierarchy
-const rels = await client.companies.relationships("CHE-100.023.968");
-const tree = await client.companies.hierarchy("CHE-100.023.968");
-
-// Compare multiple companies
-const comparison = await client.companies.compare(["CHE-100.023.968", "CHE-105.962.705"]);
-```
-
-### Dossiers
-
-```typescript
-// Generate an AI-powered company dossier
-const dossier = await client.dossiers.generate("CHE-100.023.968", {
-  level: "comprehensive", // "summary" (20 credits) | "standard" (50) | "comprehensive" (100)
-});
-```
-
-### Credits & Billing
-
-```typescript
-const balance = await client.credits.balance();
-console.log(`${balance.data.balance} credits remaining`);
-
-const usage = await client.credits.usage("2026-01-01");
-const history = await client.credits.history(50, 0);
-
-// Stripe billing
-const checkout = await client.billing.createCheckout("professional");
-const portal = await client.billing.createPortal();
-```
-
-### API Keys
-
-```typescript
-const keys = await client.apiKeys.list();
-
-const newKey = await client.apiKeys.create({
-  name: "CI Pipeline",
-  isTest: false,
-  permissions: ["read"],
-});
-console.log(newKey.data.rawKey); // shown only once
-
-await client.apiKeys.revoke("key-id");
-```
-
-### Webhooks
-
-```typescript
-const webhook = await client.webhooks.create({
-  url: "https://example.com/hook",
-  events: ["company.changed"],
-});
-console.log(webhook.data.secret); // signing secret, shown only once
-
-await client.webhooks.update("wh-id", { status: "inactive" });
-await client.webhooks.test("wh-id");
-await client.webhooks.delete("wh-id");
-```
-
-### Analytics
-
-```typescript
-const clusters = await client.analytics.cluster({ algorithm: "kmeans", k: 5 });
-const anomalies = await client.analytics.anomalies({ threshold: 0.95 });
-const cohorts = await client.analytics.cohorts();
-const rfm = await client.analytics.rfmSegments();
-```
+**18 resources, 69 endpoints.**
 
 ## Response Metadata
 
-Every response includes parsed API headers:
+Every response includes metadata parsed from API headers:
 
 ```typescript
-const resp = await client.companies.get("CHE-100.023.968");
+const resp = await client.companies.get("CHE-105.805.649");
 
-resp.meta.requestId;        // X-Request-Id — request tracing
-resp.meta.creditsUsed;      // X-Credits-Used — credits consumed
-resp.meta.creditsRemaining; // X-Credits-Remaining — remaining balance
-resp.meta.rateLimitLimit;   // X-Rate-Limit-Limit — tier rate limit
-resp.meta.dataSource;       // X-Data-Source — OGD compliance (Zefix/LINDAS)
+console.log(resp.data);                    // Company object
+console.log(resp.meta.requestId);          // X-Request-Id
+console.log(resp.meta.creditsUsed);        // X-Credits-Used
+console.log(resp.meta.creditsRemaining);   // X-Credits-Remaining
+console.log(resp.meta.rateLimitLimit);     // X-RateLimit-Limit
+console.log(resp.meta.rateLimitRemaining); // X-RateLimit-Remaining
+console.log(resp.meta.rateLimitReset);     // X-RateLimit-Reset (Unix timestamp)
+console.log(resp.meta.dataSource);         // X-Data-Source
 ```
 
 ## Error Handling
 
-All API errors map to typed error classes with `instanceof` support:
+All errors extend `VyncoError` with typed subclasses:
 
 ```typescript
-import {
-  VyncoClient,
-  AuthenticationError,
-  InsufficientCreditsError,
-  ForbiddenError,
-  NotFoundError,
-  ValidationError,
-  RateLimitError,
-  ServerError,
-  NetworkError,
-  TimeoutError,
-} from "vynco";
+import { VyncoClient, NotFoundError, RateLimitError, VyncoError } from "vynco";
 
 try {
-  const resp = await client.companies.get("CHE-000.000.000");
-} catch (e) {
-  if (e instanceof NotFoundError) console.log(`Not found: ${e.body?.detail}`);
-  else if (e instanceof RateLimitError) console.log("Rate limited, try again later");
-  else if (e instanceof InsufficientCreditsError) console.log("Top up credits");
-  else if (e instanceof AuthenticationError) console.log("Check your API key");
-  else throw e;
+  await client.companies.get("CHE-000.000.000");
+} catch (err) {
+  if (err instanceof NotFoundError) {
+    console.log("Company not found");
+  } else if (err instanceof RateLimitError) {
+    console.log("Rate limited — retry later");
+  } else if (err instanceof VyncoError) {
+    console.log(`API error: ${err.message}`, err.body);
+  }
 }
 ```
 
-| Error Class | HTTP Status | Description |
-|-------------|-------------|-------------|
-| `AuthenticationError` | 401 | Invalid or missing API key |
-| `InsufficientCreditsError` | 402 | Credit balance too low |
-| `ForbiddenError` | 403 | Insufficient permissions |
-| `NotFoundError` | 404 | Resource not found |
-| `ValidationError` | 400/422 | Invalid request parameters |
-| `RateLimitError` | 429 | Too many requests |
-| `ServerError` | 5xx | Server-side failure |
-| `NetworkError` | — | Connection/DNS failure |
-| `TimeoutError` | — | Request exceeded timeout |
-| `ConfigError` | — | Invalid client configuration |
+| Error Class | HTTP Status |
+|-------------|-------------|
+| `AuthenticationError` | 401 |
+| `InsufficientCreditsError` | 402 |
+| `ForbiddenError` | 403 |
+| `NotFoundError` | 404 |
+| `ConflictError` | 409 |
+| `ValidationError` | 400, 422 |
+| `RateLimitError` | 429 |
+| `ServerError` | 5xx |
+| `NetworkError` | Connection failures |
+| `TimeoutError` | Request timeout |
+| `ConfigError` | Invalid configuration |
 
 ## Retry Logic
 
-The client automatically retries on HTTP 429 (rate limit) and 5xx (server error) responses:
+The client automatically retries on `429` (rate limit) and `5xx` (server errors) with exponential backoff:
 
-- Exponential backoff: 500ms, 1s, 2s, 4s, ...
-- Respects `Retry-After` header when present
-- Configurable via `maxRetries` (default: 2)
-- No retry on 4xx errors (except 429)
+- **Default retries:** 2
+- **Backoff:** 500ms, 1s, 2s, ...
+- **Respects** `Retry-After` header when present
+- **No retry** on `4xx` errors (except 429)
+
+Set `maxRetries: 0` to disable retries.
 
 ## License
 

@@ -49,6 +49,13 @@ export class ValidationError extends VyncoError {
   }
 }
 
+export class ConflictError extends VyncoError {
+  constructor(body: ErrorBody) {
+    super(`conflict: ${body.detail}`, body);
+    this.name = "ConflictError";
+  }
+}
+
 export class RateLimitError extends VyncoError {
   constructor(body: ErrorBody) {
     super(`rate limited: ${body.detail}`, body);

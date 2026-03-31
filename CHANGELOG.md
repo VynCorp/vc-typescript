@@ -1,40 +1,72 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+## 2.0.0 (2026-03-31)
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+Major release aligning the TypeScript SDK with the Rust SDK (`vynco` v2.0.0).
 
-## [0.1.0] - 2026-03-17
+### Breaking Changes
 
-### Added
+- **Base URL** changed from `https://api.vynco.ch/v1` to `https://api.vynco.ch` — the `/v1` prefix is now part of each endpoint path. Health check is at `/health` (no `/v1` prefix).
+- **Removed resources:** `Watches`, `Notifications`, `Enrichments`, `Users`, `Settings`, `Sync` — replaced by new equivalents or removed from the API.
+- **Removed methods:** `companies.search()` (POST), `companies.batch()`, `changes.review()`, `changes.batch()`, `changes.bySogcId()`, `persons.get()`, `persons.search()`, `persons.roles()`, `persons.connections()`, `persons.networkStats()`, `dossiers.generate()`, `dossiers.statistics()`, `analytics.velocity()`.
+- **Renamed types:** `PaginatedResponse` → `PagedResponse`, `UsageBreakdown` → `CreditUsage`, `ApiKeyInfo` → `ApiKey`, `CheckoutSessionResponse`/`PortalSessionResponse` → `SessionUrl`.
+- **Changed method signatures:** `companies.compare()` now takes `CompareRequest` object, `dossiers.create()` replaces `dossiers.generate()`, `changes.byCompany()` replaces `changes.get()`.
+- **Type changes:** `CompanyChange`, `ChangeListParams`, `ChangeStatistics`, `Company`, `CompanyStatistics`, `Team`, `CreateTeamRequest`, `CreateApiKeyRequest`, `ApiKeyCreated`, `Dossier` fields updated to match API.
+- **ResponseMeta:** Rate limit headers changed from `x-rate-limit-limit` to `x-ratelimit-limit` (no hyphen). Added `rateLimitRemaining` and `rateLimitReset`.
 
-- **VyncoClient** with options-based configuration (`apiKey`, `baseUrl`, `timeout`, `maxRetries`)
-- **12 resource modules** covering 45 VynCo API endpoints:
-  - `companies` — search, get by UID, count, statistics, change history, board members, dossier, relationships, hierarchy, compare
-  - `persons` — get by ID, search by name
-  - `dossiers` — generate AI company reports (summary/standard/comprehensive)
-  - `apiKeys` — list, create, revoke API keys
-  - `credits` — balance, usage breakdown, transaction history
-  - `billing` — Stripe checkout and portal sessions
-  - `webhooks` — list, create, get, update, delete, test
-  - `teams` — get current team, create team
-  - `users` — get profile, update profile, change password
-  - `settings` — get/update preferences, get/update notifications
-  - `analytics` — company stats, cantons, auditors, clustering, anomaly detection, RFM segments, cohorts, cross-tabulation
-  - `sync` — data sync status
-- **Response metadata** via `VyncoResponse<T>` wrapper exposing API headers:
-  - `X-Request-Id` — request tracing
-  - `X-Credits-Used` — credits consumed
-  - `X-Credits-Remaining` — remaining balance
-  - `X-Rate-Limit-Limit` — tier rate limit
-  - `X-Data-Source` — OGD compliance (Zefix/LINDAS)
-- **Typed error handling** with error classes mapping HTTP status codes:
-  - `AuthenticationError` (401), `InsufficientCreditsError` (402), `ForbiddenError` (403)
-  - `NotFoundError` (404), `ValidationError` (400/422), `RateLimitError` (429), `ServerError` (5xx)
-  - `NetworkError` (connection failures), `DeserializeError` (JSON parse), `TimeoutError`, `ConfigError`
-- **Automatic retry** with exponential backoff on 429 and 5xx responses
-- **Retry-After header** support for rate-limited requests
-- **Dual ESM/CJS output** with TypeScript declarations via tsup
-- **Zero runtime dependencies** — uses native `fetch` (Node.js 18+ / browsers)
-- **33 tests** with vitest and msw covering auth, error mapping, resource methods, and metadata parsing
+### New Resources (8)
+
+- **`auditors`** — `history(uid)`, `tenures(params?)` — auditor appointment history and long-tenure queries.
+- **`dashboard`** — `get()` — dashboard summary data.
+- **`screening`** — `screen(request)` — sanctions and watchlist screening.
+- **`watchlists`** — `list()`, `create()`, `delete()`, `companies()`, `addCompanies()`, `removeCompany()`, `events()` — company monitoring lists with events.
+- **`webhooks`** — `list()`, `create()`, `update()`, `delete()`, `test()`, `deliveries()` — webhook subscriptions with signing secrets and delivery tracking.
+- **`exports`** — `create()`, `get()`, `download()` — bulk data export jobs with binary file downloads.
+- **`ai`** — `dossier()`, `search()`, `riskScore()` — AI-powered company intelligence, natural language search, and risk scoring.
+- **`graph`** — `get()`, `export()`, `analyze()` — corporate relationship graphs with network analysis.
+
+### New Company Methods (5)
+
+- `companies.events(uid, limit?)` — company change events (CloudEvent format)
+- `companies.reports(uid)` — financial report metadata
+- `companies.fingerprint(uid)` — extended company data profile
+- `companies.nearby(params)` — geo-proximity company search
+- `companies.relationships(uid)` — now returns typed `Relationship[]`
+
+### New Team Methods (5)
+
+- `teams.members()` — list team members
+- `teams.inviteMember(request)` — invite by email
+- `teams.updateMemberRole(id, request)` — change member role
+- `teams.removeMember(id)` — remove a member
+- `teams.billingSummary()` — team billing overview
+
+### New Analytics Methods (4)
+
+- `analytics.anomalies(request)` — anomaly detection
+- `analytics.cohorts(params?)` — cohort analysis
+- `analytics.statistics()` — company statistics
+- `analytics.candidates(params?)` — audit candidate ranking
+
+### Other Improvements
+
+- Added `ConflictError` (HTTP 409) to error mapping
+- Added `_requestBytes()` internal method for binary file downloads
+- Credits `history()` now returns typed `CreditHistory` instead of `unknown`
+- Analytics `cantons()` and `auditors()` return typed arrays instead of `AnalyticsResult`
+- GitHub Actions publish workflow now creates a GitHub Release automatically
+- CI workflow now includes package verification step
+
+## 1.0.0 (2026-03-18)
+
+Initial major release.
+
+- 16 resource modules covering 60+ API endpoints
+- Response metadata wrapper with API headers
+- Typed error handling (11 error classes)
+- Automatic retry with exponential backoff
+- Dual ESM/CJS output with zero dependencies
+
+## 0.1.0 (2026-03-17)
+
+Alpha release.

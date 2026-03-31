@@ -2,10 +2,18 @@ import type { VyncoClient } from "../client.js";
 import type { VyncoResponse } from "../response.js";
 import type {
   AnomalyRequest,
-  AnomalyResult,
+  AnomalyResponse,
+  AuditCandidate,
+  AuditCandidateParams,
+  AuditorMarketShare,
+  CantonDistribution,
   ClusterRequest,
-  ClusterResult,
-  CohortResult,
+  ClusterResponse,
+  CohortParams,
+  CohortResponse,
+  CompanyStatistics,
+  PagedResponse,
+  RfmSegmentsResponse,
 } from "../types.js";
 
 export class Analytics {
@@ -16,43 +24,47 @@ export class Analytics {
     this.#client = client;
   }
 
-  async companies(): Promise<VyncoResponse<unknown>> {
-    return this.#client._request("GET", "/analytics/companies");
+  async cantons(): Promise<VyncoResponse<CantonDistribution[]>> {
+    return this.#client._request("GET", "/v1/analytics/cantons");
   }
 
-  async cantons(): Promise<VyncoResponse<unknown>> {
-    return this.#client._request("GET", "/analytics/cantons");
+  async auditors(): Promise<VyncoResponse<AuditorMarketShare[]>> {
+    return this.#client._request("GET", "/v1/analytics/auditors");
   }
 
-  async auditors(): Promise<VyncoResponse<unknown>> {
-    return this.#client._request("GET", "/analytics/auditors");
+  async cluster(request: ClusterRequest): Promise<VyncoResponse<ClusterResponse>> {
+    return this.#client._requestWithBody("POST", "/v1/analytics/cluster", request);
   }
 
-  async cluster(request: ClusterRequest): Promise<VyncoResponse<ClusterResult>> {
-    return this.#client._requestWithBody("POST", "/analytics/cluster", request);
+  async anomalies(request: AnomalyRequest): Promise<VyncoResponse<AnomalyResponse>> {
+    return this.#client._requestWithBody("POST", "/v1/analytics/anomalies", request);
   }
 
-  async anomalies(request: AnomalyRequest): Promise<VyncoResponse<AnomalyResult>> {
-    return this.#client._requestWithBody("POST", "/analytics/anomalies", request);
+  async rfmSegments(): Promise<VyncoResponse<RfmSegmentsResponse>> {
+    return this.#client._request("GET", "/v1/analytics/rfm-segments");
   }
 
-  async rfmSegments(): Promise<VyncoResponse<unknown>> {
-    return this.#client._request("GET", "/analytics/segments/rfm");
+  async cohorts(params?: CohortParams): Promise<VyncoResponse<CohortResponse>> {
+    if (!params) return this.#client._request("GET", "/v1/analytics/cohorts");
+    const queryParams: Record<string, string> = {};
+    if (params.groupBy != null) queryParams.groupBy = params.groupBy;
+    if (params.metric != null) queryParams.metric = params.metric;
+    return this.#client._requestWithParams("GET", "/v1/analytics/cohorts", queryParams);
   }
 
-  async cohorts(params?: Record<string, string>): Promise<VyncoResponse<CohortResult>> {
-    if (params && Object.keys(params).length > 0) {
-      return this.#client._requestWithParams("GET", "/analytics/cohorts", params);
-    }
-    return this.#client._request("GET", "/analytics/cohorts");
+  async statistics(): Promise<VyncoResponse<CompanyStatistics>> {
+    return this.#client._request("GET", "/v1/analytics/statistics");
   }
 
-  async crossTabulation(
-    params?: Record<string, string>,
-  ): Promise<VyncoResponse<unknown>> {
-    if (params && Object.keys(params).length > 0) {
-      return this.#client._requestWithParams("GET", "/analytics/cross", params);
-    }
-    return this.#client._request("GET", "/analytics/cross");
+  async candidates(
+    params?: AuditCandidateParams,
+  ): Promise<VyncoResponse<PagedResponse<AuditCandidate>>> {
+    if (!params) return this.#client._request("GET", "/v1/analytics/candidates");
+    const queryParams: Record<string, string> = {};
+    if (params.sortBy != null) queryParams.sortBy = params.sortBy;
+    if (params.canton != null) queryParams.canton = params.canton;
+    if (params.page != null) queryParams.page = String(params.page);
+    if (params.pageSize != null) queryParams.pageSize = String(params.pageSize);
+    return this.#client._requestWithParams("GET", "/v1/analytics/candidates", queryParams);
   }
 }

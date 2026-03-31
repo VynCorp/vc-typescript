@@ -1,10 +1,18 @@
 // --- Pagination ---
 
-export interface PaginatedResponse<T> {
+export interface PagedResponse<T> {
   items: T[];
   total: number;
   page: number;
   pageSize: number;
+}
+
+// --- Health ---
+
+export interface HealthResponse {
+  status: string;
+  version?: string;
+  uptime?: string;
 }
 
 // --- Companies ---
@@ -12,196 +20,439 @@ export interface PaginatedResponse<T> {
 export interface Company {
   uid: string;
   name: string;
-  legalSeat: string;
-  canton: string;
-  legalForm: string;
-  status: string;
-  purpose: string;
-  capitalNominal?: number;
-  capitalCurrency?: string;
-  auditorName?: string;
-  registrationDate?: string;
-  deletionDate?: string;
-  dataSource: string;
-  lastModified: string;
+  canton?: string;
+  status?: string;
+  legalForm?: string;
+  shareCapital?: number;
+  industry?: string;
+  auditorCategory?: string;
+  updatedAt?: string;
 }
 
-export interface CompanySearchParams {
+export interface CompanyListParams {
   search?: string;
   canton?: string;
-  legalForm?: string;
-  status?: string;
-  sortBy?: string;
-  sortDesc?: boolean;
+  changedSince?: string;
   page?: number;
   pageSize?: number;
-}
-
-export interface CompanyChange {
-  id: string;
-  companyUid: string;
-  changeType: string;
-  fieldName: string;
-  oldValue?: string;
-  newValue?: string;
-  detectedAt: string;
-  sourceDate?: string;
-}
-
-export interface PersonRole {
-  personId: string;
-  firstName: string;
-  lastName: string;
-  role: string;
-  since?: string;
-  until?: string;
 }
 
 export interface CompanyCount {
   count: number;
 }
 
-export interface CompanyRelationship {
-  id: string;
-  sourceCompanyUid: string;
-  targetCompanyUid: string;
-  relationshipType: string;
-  sourceLei?: string;
-  targetLei?: string;
-  dataSource: string;
-  isActive: boolean;
+export interface CompanyStatistics {
+  total: number;
+  byStatus: Record<string, number>;
+  byCanton: Record<string, number>;
+  byLegalForm: Record<string, number>;
 }
 
-export interface CompanyComparison {
+export interface CompanyEvent {
+  id: string;
+  ceType: string;
+  ceSource: string;
+  ceTime: string;
+  companyUid: string;
+  companyName?: string;
+  category?: string;
+  severity?: string;
+  summary?: string;
+  detailJson?: string;
+  createdAt: string;
+}
+
+export interface EventListResponse {
+  events: CompanyEvent[];
+  count: number;
+}
+
+export interface CompareRequest {
+  uids: string[];
+}
+
+export interface CompareResponse {
   companies: Company[];
   dimensions: string[];
   similarities: string[];
   differences: string[];
 }
 
-// --- Persons ---
-
-export interface Person {
+export interface NewsItem {
   id: string;
-  firstName: string;
-  lastName: string;
-  roles: PersonRole[];
+  title: string;
+  summary?: string;
+  source?: string;
+  sourceType: string;
+  publishedAt: string;
+  url?: string;
 }
 
-export interface PersonSearchParams {
+export interface CompanyReport {
+  reportType: string;
+  fiscalYear?: number;
+  description: string;
+  sourceUrl?: string;
+  publicationDate?: string;
+}
+
+export interface Relationship {
+  relatedUid: string;
+  relatedName: string;
+  relationshipType: string;
+  sharedPersons: number;
+}
+
+export interface HierarchyResponse {
+  parent?: Company;
+  subsidiaries: Company[];
+  siblings: Company[];
+}
+
+export interface Fingerprint {
+  companyUid: string;
   name: string;
+  industrySector?: string;
+  industryGroup?: string;
+  industry?: string;
+  sizeCategory?: string;
+  employeeCountEstimate?: number;
+  capitalAmount?: number;
+  revenue?: number;
+  netIncome?: number;
+  auditorTier?: string;
+  changeFrequency: number;
+  boardSize: number;
+  companyAge: number;
+  canton: string;
+  legalForm: string;
+  hasParentCompany: boolean;
+  subsidiaryCount: number;
+  generatedAt: string;
+  fingerprintVersion: string;
 }
 
-// --- Dossiers ---
+export interface NearbyCompany {
+  uid: string;
+  name: string;
+  distance: number;
+  latitude: number;
+  longitude: number;
+}
 
-export interface Dossier {
+export interface NearbyParams {
+  lat: number;
+  lng: number;
+  radiusKm?: number;
+  limit?: number;
+}
+
+// --- Auditors ---
+
+export interface AuditorHistoryResponse {
+  companyUid: string;
+  companyName: string;
+  currentAuditor?: string;
+  history: AuditorTenure[];
+}
+
+export interface AuditorTenure {
   id: string;
   companyUid: string;
+  auditorName: string;
+  appointedAt?: string;
+  resignedAt?: string;
+  tenureYears?: number;
+  isCurrent: boolean;
+  source?: string;
+}
+
+export interface AuditorTenureParams {
+  minYears?: number;
+  canton?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+// --- Dashboard ---
+
+export interface DashboardResponse {
+  [key: string]: unknown;
+}
+
+// --- Screening ---
+
+export interface ScreeningRequest {
+  name: string;
+  uid?: string;
+  sources?: string[];
+}
+
+export interface ScreeningResponse {
+  queryName: string;
+  queryUid?: string;
+  screenedAt: string;
+  hitCount: number;
+  riskLevel: string;
+  hits: ScreeningHit[];
+  sourcesChecked: string[];
+}
+
+export interface ScreeningHit {
+  source: string;
+  matchedName: string;
+  entityType?: string;
+  score: number;
+  datasets: string[];
+  details?: Record<string, unknown>;
+}
+
+// --- Watchlists ---
+
+export interface WatchlistSummary {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  updatedAt?: string;
+  companyCount: number;
+}
+
+export interface Watchlist {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  updatedAt?: string;
+  companyCount: number;
+}
+
+export interface CreateWatchlistRequest {
+  name: string;
+  description?: string;
+}
+
+export interface AddCompaniesRequest {
+  uids: string[];
+}
+
+export interface AddCompaniesResponse {
+  added: number;
+  alreadyPresent: number;
+}
+
+export interface WatchlistCompaniesResponse {
+  companies: Company[];
+  total: number;
+}
+
+// --- Webhooks ---
+
+export interface WebhookSubscription {
+  id: string;
+  url: string;
+  description?: string;
+  eventFilters?: string[];
+  companyFilters?: string[];
   status: string;
-  executiveSummary?: string;
-  keyInsights?: string[];
-  riskFactors?: string[];
-  generatedAt?: string;
+  createdAt: string;
+  updatedAt?: string;
 }
 
-export interface GenerateDossierRequest {
-  level: "summary" | "standard" | "comprehensive" | (string & {});
+export interface CreateWebhookRequest {
+  url: string;
+  description?: string;
+  eventFilters?: string[];
+  companyFilters?: string[];
 }
 
-// --- Credits & Billing ---
+export interface UpdateWebhookRequest {
+  url?: string;
+  description?: string;
+  eventFilters?: string[];
+  companyFilters?: string[];
+  status?: string;
+}
+
+export interface CreateWebhookResponse {
+  id: string;
+  url: string;
+  description?: string;
+  eventFilters?: string[];
+  companyFilters?: string[];
+  status: string;
+  signingSecret: string;
+  createdAt: string;
+}
+
+export interface TestDeliveryResponse {
+  success: boolean;
+  httpStatus?: number;
+  errorMessage?: string;
+  deliveredAt: string;
+}
+
+export interface WebhookDelivery {
+  id: string;
+  eventId: string;
+  status: string;
+  attempt: number;
+  httpStatus?: number;
+  errorMessage?: string;
+  deliveredAt?: string;
+  createdAt: string;
+}
+
+// --- Exports ---
+
+export interface CreateExportRequest {
+  format?: string;
+  canton?: string;
+  status?: string;
+  changedSince?: string;
+  industry?: string;
+  maxRows?: number;
+}
+
+export interface ExportJob {
+  id: string;
+  status: string;
+  format?: string;
+  totalRows?: number;
+  fileSizeBytes?: number;
+  errorMessage?: string;
+  createdAt: string;
+  completedAt?: string;
+  expiresAt?: string;
+}
+
+export interface ExportDownload {
+  job: ExportJob;
+  data?: unknown;
+}
+
+export interface ExportFile {
+  bytes: ArrayBuffer;
+  contentType?: string;
+  filename?: string;
+}
+
+// --- AI ---
+
+export interface AiDossierRequest {
+  uid: string;
+  depth?: string;
+}
+
+export interface AiDossierResponse {
+  uid: string;
+  companyName: string;
+  dossier: string;
+  sources: string[];
+  generatedAt: string;
+}
+
+export interface AiSearchRequest {
+  query: string;
+}
+
+export interface AiSearchResponse {
+  query: string;
+  explanation: string;
+  filtersApplied: Record<string, unknown>;
+  results: Company[];
+  total: number;
+}
+
+export interface RiskScoreRequest {
+  uid: string;
+}
+
+export interface RiskScoreResponse {
+  uid: string;
+  companyName: string;
+  overallScore: number;
+  riskLevel: string;
+  breakdown: RiskFactor[];
+  assessedAt: string;
+}
+
+export interface RiskFactor {
+  factor: string;
+  score: number;
+  weight: number;
+  description: string;
+}
+
+// --- API Keys ---
+
+export interface ApiKey {
+  id: string;
+  name?: string;
+  environment?: string;
+  scopes?: string[];
+  createdAt: string;
+  lastUsedAt?: string;
+}
+
+export interface ApiKeyCreated {
+  id: string;
+  name?: string;
+  key: string;
+  environment?: string;
+  scopes?: string[];
+  createdAt: string;
+}
+
+export interface CreateApiKeyRequest {
+  name?: string;
+  environment?: string;
+  scopes?: string[];
+}
+
+// --- Credits ---
 
 export interface CreditBalance {
   balance: number;
   monthlyCredits: number;
   usedThisMonth: number;
   tier: string;
-  overageRate: number;
+  overageRate?: number;
 }
 
-export interface UsageBreakdown {
-  operations: UsageOperation[];
-  totalDebited: number;
-  period?: UsagePeriod;
+export interface CreditUsage {
+  operations: UsageRow[];
+  total: number;
+  period: string;
 }
 
-export interface UsageOperation {
+export interface UsageRow {
   operation: string;
-  count: number;
   credits: number;
 }
 
-export interface UsagePeriod {
-  start: string;
-  end: string;
+export interface CreditHistory {
+  items: CreditLedgerEntry[];
+  total: number;
 }
 
-export interface CheckoutSessionResponse {
-  url: string;
-}
-
-export interface PortalSessionResponse {
-  url: string;
-}
-
-// --- API Keys ---
-
-export interface ApiKeyInfo {
+export interface CreditLedgerEntry {
   id: string;
-  name: string;
-  keyPrefix: string;
-  keyHint: string;
-  permissions: string[];
-  isActive: boolean;
-  lastUsedAt?: string;
+  type: string;
+  amount: number;
+  balance: number;
+  description?: string;
   createdAt: string;
-  expiresAt?: string;
 }
 
-export interface ApiKeyCreated {
-  id: string;
-  name: string;
-  rawKey: string;
-  keyPrefix: string;
-  permissions: string[];
-  createdAt: string;
-  expiresAt?: string;
-}
+// --- Billing ---
 
-export interface CreateApiKeyRequest {
-  name: string;
-  isTest: boolean;
-  permissions: string[];
-}
-
-// --- Webhooks ---
-
-export interface Webhook {
-  id: string;
+export interface SessionUrl {
   url: string;
-  events: string[];
-  status: string;
-  secret?: string;
-  createdAt?: string;
-  updatedAt?: string;
 }
 
-export interface WebhookCreated {
-  id: string;
-  url: string;
-  events: string[];
-  secret: string;
-  createdAt?: string;
-}
-
-export interface CreateWebhookRequest {
-  url: string;
-  events: string[];
-}
-
-export interface UpdateWebhookRequest {
-  url?: string;
-  events?: string[];
-  status?: string;
+export interface CheckoutRequest {
+  tier: string;
 }
 
 // --- Teams ---
@@ -209,98 +460,237 @@ export interface UpdateWebhookRequest {
 export interface Team {
   id: string;
   name: string;
-  slug: string;
+  slug?: string;
   tier: string;
   creditBalance: number;
   monthlyCredits: number;
-  overageRate: number;
-  createdAt: string;
 }
 
 export interface CreateTeamRequest {
-  name: string;
-  slug: string;
-}
-
-// --- Users ---
-
-export interface UserProfile {
-  id: string;
-  name: string;
-  email: string;
-  avatar: string;
-  plan: string;
-  creditBalance: number;
-}
-
-export interface UpdateProfileRequest {
   name?: string;
-  email?: string;
 }
 
-export interface ChangePasswordRequest {
-  currentPassword: string;
-  newPassword: string;
+export interface TeamMember {
+  id: string;
+  name?: string;
+  email: string;
+  role: string;
+  lastLoginAt?: string;
+}
+
+export interface InviteMemberRequest {
+  email: string;
+  role?: string;
+}
+
+export interface UpdateMemberRoleRequest {
+  role: string;
+}
+
+export interface Invitation {
+  id: string;
+  email: string;
+  role: string;
+  createdAt: string;
+}
+
+export interface BillingSummary {
+  tier: string;
+  creditBalance: number;
+  monthlyCredits: number;
+  usedThisMonth: number;
+  members: number;
+}
+
+// --- Changes ---
+
+export interface CompanyChange {
+  id: string;
+  companyUid: string;
+  companyName?: string;
+  changeType: string;
+  fieldName?: string;
+  oldValue?: string;
+  newValue?: string;
+  description?: string;
+  source?: string;
+  detectedAt: string;
+}
+
+export interface ChangeListParams {
+  type?: string;
+  since?: string;
+  until?: string;
+  companySearch?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ChangeStatistics {
+  totalChanges: number;
+  changesThisWeek: number;
+  changesThisMonth: number;
+  byType: Record<string, number>;
+}
+
+// --- Persons ---
+
+export interface BoardMember {
+  id?: string;
+  name: string;
+  role?: string;
+  nationality?: string;
+  placeOfOrigin?: string;
+  signatureAuthority?: string;
+  since?: string;
 }
 
 // --- Analytics ---
 
+export interface CantonDistribution {
+  canton: string;
+  count: number;
+  percentage: number;
+}
+
+export interface AuditorMarketShare {
+  auditorName: string;
+  companyCount: number;
+  percentage: number;
+}
+
 export interface ClusterRequest {
-  algorithm?: string;
+  algorithm: string;
   k?: number;
-  features?: string[];
+}
+
+export interface ClusterResponse {
+  clusters: ClusterResult[];
 }
 
 export interface ClusterResult {
-  algorithm: string;
-  k: number;
-  clusters: ClusterGroup[];
-  metrics: Record<string, number>;
-}
-
-export interface ClusterGroup {
   id: number;
-  size: number;
-  centroid: Record<string, number>;
-  companies: string[];
+  companyCount: number;
+  centroid?: Record<string, number>;
+  topCompanies?: Array<{ uid: string; name: string; score: number }>;
 }
 
 export interface AnomalyRequest {
-  algorithm?: string;
+  algorithm: string;
   threshold?: number;
 }
 
-export interface AnomalyResult {
-  algorithm: string;
-  anomalies: AnomalyEntry[];
-  normalCount: number;
-  anomalyCount: number;
-  anomalyRate: number;
+export interface AnomalyResponse {
+  anomalies: unknown[];
+  totalScanned: number;
+  threshold: number;
 }
 
-export interface AnomalyEntry {
-  companyUid: string;
-  score: number;
-  factors: string[];
+export interface RfmSegmentsResponse {
+  segments: RfmSegment[];
 }
 
-export interface CohortResult {
+export interface RfmSegment {
+  segment: string;
+  count: number;
+  avgRecency: number;
+  avgFrequency: number;
+  avgMonetary: number;
+}
+
+export interface CohortResponse {
+  cohorts: unknown[];
   groupBy: string;
   metric: string;
-  cohorts: CohortGroup[];
 }
 
-export interface CohortGroup {
-  label: string;
-  count: number;
-  value: number;
+export interface CohortParams {
+  groupBy?: string;
+  metric?: string;
 }
 
-// --- Sync ---
+export interface AuditCandidate {
+  uid: string;
+  name: string;
+  canton?: string;
+  legalForm?: string;
+  shareCapital?: number;
+  auditorName?: string;
+  auditorCategory?: string;
+}
 
-export interface SyncStatus {
-  lastSync: string;
-  status: string;
-  recordsProcessed?: number;
-  errors?: number;
+export interface AuditCandidateParams {
+  sortBy?: string;
+  canton?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+// --- Dossiers ---
+
+export interface CreateDossierRequest {
+  uid: string;
+  level?: string;
+}
+
+export interface Dossier {
+  id: string;
+  userId?: string;
+  companyUid: string;
+  companyName: string;
+  level: string;
+  content: string;
+  sources: string[];
+  createdAt: string;
+}
+
+export interface DossierSummary {
+  id: string;
+  companyUid: string;
+  companyName: string;
+  level: string;
+  createdAt: string;
+}
+
+// --- Graph ---
+
+export interface GraphResponse {
+  nodes: GraphNode[];
+  links: GraphLink[];
+}
+
+export interface GraphNode {
+  id: string;
+  name: string;
+  uid?: string;
+  nodeType: string;
+  capital?: number;
+  canton?: string;
+  status?: string;
+  role?: string;
+  personId?: string;
+}
+
+export interface GraphLink {
+  source: string;
+  target: string;
+  linkType: string;
+  label?: string;
+}
+
+export interface NetworkAnalysisRequest {
+  uids: string[];
+  overlay: string;
+}
+
+export interface NetworkAnalysisResponse {
+  nodes: GraphNode[];
+  links: GraphLink[];
+  clusters: NetworkCluster[];
+}
+
+export interface NetworkCluster {
+  id: number;
+  nodeIds: string[];
+  density?: number;
 }

@@ -1,8 +1,8 @@
 import type { VyncoClient } from "../client.js";
 import type { VyncoResponse } from "../response.js";
-import type { SyncStatus } from "../types.js";
+import type { HealthResponse } from "../types.js";
 
-export class Sync {
+export class Health {
   #client: VyncoClient;
 
   /** @internal */
@@ -10,7 +10,7 @@ export class Sync {
     this.#client = client;
   }
 
-  async status(): Promise<VyncoResponse<SyncStatus>> {
-    return this.#client._request("GET", "/sync/status");
+  async check(): Promise<VyncoResponse<HealthResponse>> {
+    return this.#client._request("GET", "/health");
   }
 }

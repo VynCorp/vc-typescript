@@ -1,8 +1,9 @@
 {
   "name": "vynco",
-  "version": "0.1.0",
-  "description": "TypeScript SDK for the VynCo API — Swiss company data, analytics, and platform management",
+  "version": "2.0.0",
+  "description": "TypeScript SDK for the VynCo Swiss Corporate Intelligence API",
   "license": "Apache-2.0",
+  "author": "VynCo <hello@vynco.ch>",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -44,12 +45,18 @@
     "vynco",
     "swiss",
     "company",
+    "corporate-intelligence",
     "zefix",
+    "sogc",
     "api",
     "sdk"
   ],
+  "homepage": "https://vynco.ch",
   "repository": {
     "type": "git",
     "url": "https://github.com/VynCorp/vc-typescript.git"
+  },
+  "bugs": {
+    "url": "https://github.com/VynCorp/vc-typescript/issues"
   }
 }
