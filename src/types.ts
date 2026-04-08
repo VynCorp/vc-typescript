@@ -11,8 +11,9 @@ export interface PagedResponse<T> {
 
 export interface HealthResponse {
   status: string;
-  version?: string;
-  uptime?: string;
+  database: string;
+  redis: string;
+  version: string;
 }
 
 // --- Companies ---
@@ -24,8 +25,38 @@ export interface Company {
   status?: string;
   legalForm?: string;
   shareCapital?: number;
+  currency?: string;
+  purpose?: string;
+  foundingDate?: string;
+  registrationDate?: string;
+  deletionDate?: string;
+  legalSeat?: string;
+  municipality?: string;
+  dataSource?: string;
+  enrichmentLevel?: string;
+  addressStreet?: string;
+  addressHouseNumber?: string;
+  addressZipCode?: string;
+  addressCity?: string;
+  addressCanton?: string;
+  website?: string;
   industry?: string;
+  subIndustry?: string;
+  employeeCount?: number;
+  auditorName?: string;
   auditorCategory?: string;
+  latitude?: number;
+  longitude?: number;
+  geoPrecision?: string;
+  nogaCode?: string;
+  sanctionsHit?: boolean;
+  lastScreenedAt?: string;
+  isFinmaRegulated?: boolean;
+  ehraid?: number;
+  chid?: string;
+  cantonalExcerptUrl?: string;
+  oldNames?: string[];
+  translations?: string[];
   updatedAt?: string;
 }
 
@@ -33,6 +64,13 @@ export interface CompanyListParams {
   search?: string;
   canton?: string;
   changedSince?: string;
+  status?: string;
+  legalForm?: string;
+  capitalMin?: number;
+  capitalMax?: number;
+  auditorCategory?: string;
+  sortBy?: string;
+  sortDesc?: boolean;
   page?: number;
   pageSize?: number;
 }
@@ -48,17 +86,54 @@ export interface CompanyStatistics {
   byLegalForm: Record<string, number>;
 }
 
+// --- Company full (composite endpoint) ---
+
+export interface CompanyFullResponse {
+  company: Company;
+  persons: PersonEntry[];
+  recentChanges: ChangeEntry[];
+  relationships: RelationshipEntry[];
+}
+
+export interface PersonEntry {
+  personId?: string;
+  firstName?: string;
+  lastName?: string;
+  role: string;
+  since?: string;
+  until?: string;
+}
+
+export interface ChangeEntry {
+  id: string;
+  companyUid: string;
+  changeType?: string;
+  fieldName?: string;
+  oldValue?: string;
+  newValue?: string;
+  detectedAt: string;
+  sourceDate?: string;
+}
+
+export interface RelationshipEntry {
+  relatedUid: string;
+  relatedName?: string;
+  relationshipType: string;
+}
+
+// --- Events ---
+
 export interface CompanyEvent {
   id: string;
   ceType: string;
   ceSource: string;
   ceTime: string;
   companyUid: string;
-  companyName?: string;
-  category?: string;
-  severity?: string;
-  summary?: string;
-  detailJson?: string;
+  companyName: string;
+  category: string;
+  severity: string;
+  summary: string;
+  detailJson: unknown;
   createdAt: string;
 }
 
@@ -67,16 +142,25 @@ export interface EventListResponse {
   count: number;
 }
 
+// --- Compare ---
+
 export interface CompareRequest {
   uids: string[];
 }
 
 export interface CompareResponse {
-  companies: Company[];
-  dimensions: string[];
-  similarities: string[];
-  differences: string[];
+  uids: string[];
+  names: string[];
+  dimensions: ComparisonDimension[];
 }
+
+export interface ComparisonDimension {
+  field: string;
+  label: string;
+  values: (string | null)[];
+}
+
+// --- Company Extended ---
 
 export interface NewsItem {
   id: string;
@@ -93,20 +177,20 @@ export interface CompanyReport {
   fiscalYear?: number;
   description: string;
   sourceUrl?: string;
-  publicationDate?: string;
+  publicationDate: string;
 }
 
 export interface Relationship {
   relatedUid: string;
   relatedName: string;
   relationshipType: string;
-  sharedPersons: number;
+  sharedPersons: string[];
 }
 
 export interface HierarchyResponse {
-  parent?: Company;
-  subsidiaries: Company[];
-  siblings: Company[];
+  parent?: unknown;
+  subsidiaries: unknown[];
+  siblings: unknown[];
 }
 
 export interface Fingerprint {
@@ -118,6 +202,7 @@ export interface Fingerprint {
   sizeCategory?: string;
   employeeCountEstimate?: number;
   capitalAmount?: number;
+  capitalCurrency?: string;
   revenue?: number;
   netIncome?: number;
   auditorTier?: string;
@@ -147,24 +232,129 @@ export interface NearbyParams {
   limit?: number;
 }
 
+// --- Classification ---
+
+export interface Classification {
+  companyUid: string;
+  sectorCode?: string;
+  sectorName?: string;
+  groupCode?: string;
+  groupName?: string;
+  industryCode?: string;
+  industryName?: string;
+  subIndustryCode?: string;
+  subIndustryName?: string;
+  method: string;
+  classifiedAt: string;
+  auditorCategory?: string;
+  isFinmaRegulated: boolean;
+}
+
+// --- Corporate Structure ---
+
+export interface CorporateStructure {
+  headOffices: RelatedCompanyEntry[];
+  branchOffices: RelatedCompanyEntry[];
+  acquisitions: RelatedCompanyEntry[];
+  acquiredBy: RelatedCompanyEntry[];
+}
+
+export interface RelatedCompanyEntry {
+  uid: string;
+  name: string;
+}
+
+// --- Acquisitions ---
+
+export interface Acquisition {
+  acquirerUid: string;
+  acquiredUid: string;
+  acquirerName?: string;
+  acquiredName?: string;
+  createdAt: string;
+}
+
+// --- Notes ---
+
+export interface Note {
+  id: string;
+  companyUid: string;
+  content: string;
+  noteType: string;
+  rating?: number;
+  isPrivate: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateNoteRequest {
+  content: string;
+  noteType?: string;
+  rating?: number;
+  isPrivate?: boolean;
+}
+
+export interface UpdateNoteRequest {
+  content?: string;
+  noteType?: string;
+  rating?: number;
+  isPrivate?: boolean;
+}
+
+// --- Tags ---
+
+export interface Tag {
+  id: string;
+  companyUid: string;
+  tagName: string;
+  color?: string;
+  createdAt: string;
+}
+
+export interface CreateTagRequest {
+  tagName: string;
+  color?: string;
+}
+
+export interface TagSummary {
+  tagName: string;
+  count: number;
+}
+
+// --- Excel Export ---
+
+export interface ExcelExportRequest {
+  uids?: string[];
+  filter?: ExcelExportFilter;
+  fields?: string[];
+}
+
+export interface ExcelExportFilter {
+  canton?: string;
+  search?: string;
+  status?: string;
+  auditorCategory?: string;
+}
+
 // --- Auditors ---
 
 export interface AuditorHistoryResponse {
   companyUid: string;
   companyName: string;
-  currentAuditor?: string;
+  currentAuditor?: AuditorTenure;
   history: AuditorTenure[];
 }
 
 export interface AuditorTenure {
   id: string;
   companyUid: string;
+  companyName: string;
   auditorName: string;
   appointedAt?: string;
   resignedAt?: string;
   tenureYears?: number;
   isCurrent: boolean;
-  source?: string;
+  source: string;
 }
 
 export interface AuditorTenureParams {
@@ -177,7 +367,43 @@ export interface AuditorTenureParams {
 // --- Dashboard ---
 
 export interface DashboardResponse {
-  [key: string]: unknown;
+  generatedAt: string;
+  data: DataCompleteness;
+  pipelines: PipelineStatus[];
+  auditorTenures: AuditorTenureStats;
+}
+
+export interface DataCompleteness {
+  totalCompanies: number;
+  enrichedCompanies: number;
+  companiesWithIndustry: number;
+  companiesWithGeo: number;
+  totalPersons: number;
+  totalChanges: number;
+  totalSogcPublications: number;
+}
+
+export interface PipelineStatus {
+  id: string;
+  status: string;
+  itemsProcessed: number;
+  lastCompletedAt?: string;
+}
+
+export interface AuditorTenureStats {
+  totalTracked: number;
+  currentAuditors: number;
+  tenuresOver10Years: number;
+  tenuresOver7Years: number;
+  avgTenureYears: number;
+  longestTenure?: LongestTenure;
+}
+
+export interface LongestTenure {
+  companyUid: string;
+  companyName: string;
+  auditorName: string;
+  tenureYears: number;
 }
 
 // --- Screening ---
@@ -201,10 +427,10 @@ export interface ScreeningResponse {
 export interface ScreeningHit {
   source: string;
   matchedName: string;
-  entityType?: string;
+  entityType: string;
   score: number;
   datasets: string[];
-  details?: Record<string, unknown>;
+  details: unknown;
 }
 
 // --- Watchlists ---
@@ -212,24 +438,26 @@ export interface ScreeningHit {
 export interface WatchlistSummary {
   id: string;
   name: string;
-  description?: string;
-  createdAt: string;
-  updatedAt?: string;
+  description: string;
   companyCount: number;
+  createdAt: string;
 }
 
 export interface Watchlist {
   id: string;
   name: string;
-  description?: string;
+  description: string;
   createdAt: string;
-  updatedAt?: string;
-  companyCount: number;
+  updatedAt: string;
 }
 
 export interface CreateWatchlistRequest {
   name: string;
   description?: string;
+}
+
+export interface WatchlistCompaniesResponse {
+  uids: string[];
 }
 
 export interface AddCompaniesRequest {
@@ -238,12 +466,6 @@ export interface AddCompaniesRequest {
 
 export interface AddCompaniesResponse {
   added: number;
-  alreadyPresent: number;
-}
-
-export interface WatchlistCompaniesResponse {
-  companies: Company[];
-  total: number;
 }
 
 // --- Webhooks ---
@@ -251,12 +473,12 @@ export interface WatchlistCompaniesResponse {
 export interface WebhookSubscription {
   id: string;
   url: string;
-  description?: string;
-  eventFilters?: string[];
-  companyFilters?: string[];
+  description: string;
+  eventFilters: string[];
+  companyFilters: string[];
   status: string;
   createdAt: string;
-  updatedAt?: string;
+  updatedAt: string;
 }
 
 export interface CreateWebhookRequest {
@@ -275,21 +497,14 @@ export interface UpdateWebhookRequest {
 }
 
 export interface CreateWebhookResponse {
-  id: string;
-  url: string;
-  description?: string;
-  eventFilters?: string[];
-  companyFilters?: string[];
-  status: string;
+  webhook: WebhookSubscription;
   signingSecret: string;
-  createdAt: string;
 }
 
 export interface TestDeliveryResponse {
   success: boolean;
   httpStatus?: number;
-  errorMessage?: string;
-  deliveredAt: string;
+  error?: string;
 }
 
 export interface WebhookDelivery {
@@ -317,7 +532,7 @@ export interface CreateExportRequest {
 export interface ExportJob {
   id: string;
   status: string;
-  format?: string;
+  format: string;
   totalRows?: number;
   fileSizeBytes?: number;
   errorMessage?: string;
@@ -328,13 +543,13 @@ export interface ExportJob {
 
 export interface ExportDownload {
   job: ExportJob;
-  data?: unknown;
+  data?: string;
 }
 
 export interface ExportFile {
   bytes: ArrayBuffer;
-  contentType?: string;
-  filename?: string;
+  contentType: string;
+  filename: string;
 }
 
 // --- AI ---
@@ -359,8 +574,8 @@ export interface AiSearchRequest {
 export interface AiSearchResponse {
   query: string;
   explanation: string;
-  filtersApplied: Record<string, unknown>;
-  results: Company[];
+  filtersApplied: unknown;
+  results: unknown[];
   total: number;
 }
 
@@ -388,20 +603,26 @@ export interface RiskFactor {
 
 export interface ApiKey {
   id: string;
-  name?: string;
-  environment?: string;
-  scopes?: string[];
+  name: string;
+  prefix: string;
+  environment: string;
+  scopes: string[];
+  status: string;
+  expiresAt?: string;
   createdAt: string;
   lastUsedAt?: string;
 }
 
 export interface ApiKeyCreated {
-  id: string;
-  name?: string;
   key: string;
-  environment?: string;
-  scopes?: string[];
+  id: string;
+  name: string;
+  prefix: string;
+  environment: string;
+  scopes: string[];
+  expiresAt?: string;
   createdAt: string;
+  warning: string;
 }
 
 export interface CreateApiKeyRequest {
@@ -417,18 +638,24 @@ export interface CreditBalance {
   monthlyCredits: number;
   usedThisMonth: number;
   tier: string;
-  overageRate?: number;
+  overageRate: number;
 }
 
 export interface CreditUsage {
   operations: UsageRow[];
   total: number;
-  period: string;
+  period: UsagePeriod;
+}
+
+export interface UsagePeriod {
+  since: string;
+  until: string;
 }
 
 export interface UsageRow {
   operation: string;
-  credits: number;
+  count: number;
+  totalCredits: number;
 }
 
 export interface CreditHistory {
@@ -437,11 +664,11 @@ export interface CreditHistory {
 }
 
 export interface CreditLedgerEntry {
-  id: string;
-  type: string;
+  id: number;
+  entryType: string;
   amount: number;
   balance: number;
-  description?: string;
+  description: string;
   createdAt: string;
 }
 
@@ -460,7 +687,7 @@ export interface CheckoutRequest {
 export interface Team {
   id: string;
   name: string;
-  slug?: string;
+  slug: string;
   tier: string;
   creditBalance: number;
   monthlyCredits: number;
@@ -472,7 +699,7 @@ export interface CreateTeamRequest {
 
 export interface TeamMember {
   id: string;
-  name?: string;
+  name: string;
   email: string;
   role: string;
   lastLoginAt?: string;
@@ -489,9 +716,23 @@ export interface UpdateMemberRoleRequest {
 
 export interface Invitation {
   id: string;
+  teamId: string;
   email: string;
   role: string;
+  token: string;
+  status: string;
   createdAt: string;
+  expiresAt: string;
+}
+
+export interface JoinTeamRequest {
+  token: string;
+}
+
+export interface JoinTeamResponse {
+  teamId: string;
+  teamName: string;
+  role: string;
 }
 
 export interface BillingSummary {
@@ -499,7 +740,13 @@ export interface BillingSummary {
   creditBalance: number;
   monthlyCredits: number;
   usedThisMonth: number;
-  members: number;
+  members: MemberUsage[];
+}
+
+export interface MemberUsage {
+  userId: string;
+  name: string;
+  creditsUsed: number;
 }
 
 // --- Changes ---
@@ -518,7 +765,7 @@ export interface CompanyChange {
 }
 
 export interface ChangeListParams {
-  type?: string;
+  changeType?: string;
   since?: string;
   until?: string;
   companySearch?: string;
@@ -530,19 +777,60 @@ export interface ChangeStatistics {
   totalChanges: number;
   changesThisWeek: number;
   changesThisMonth: number;
-  byType: Record<string, number>;
+  byType: unknown;
 }
 
 // --- Persons ---
 
 export interface BoardMember {
-  id?: string;
-  name: string;
-  role?: string;
-  nationality?: string;
-  placeOfOrigin?: string;
-  signatureAuthority?: string;
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  role: string;
+  roleCategory: string;
+  origin?: string;
+  residence?: string;
+  signingAuthority?: string;
   since?: string;
+}
+
+export interface PersonSearchParams {
+  q?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PersonSearchResult {
+  id: string;
+  fullName: string;
+  firstName?: string;
+  lastName?: string;
+  placeOfOrigin?: string;
+  nationality?: string;
+  roleCount?: number;
+}
+
+export interface PersonDetail {
+  id: string;
+  fullName: string;
+  firstName?: string;
+  lastName?: string;
+  placeOfOrigin?: string;
+  residence?: string;
+  nationality?: string;
+  roles: PersonRoleDetail[];
+}
+
+export interface PersonRoleDetail {
+  companyUid: string;
+  companyName?: string;
+  roleFunction: string;
+  roleCategory: string;
+  signingAuthority?: string;
+  startDate?: string;
+  endDate?: string;
+  changeAction?: string;
+  isCurrent?: boolean;
 }
 
 // --- Analytics ---
@@ -570,9 +858,9 @@ export interface ClusterResponse {
 
 export interface ClusterResult {
   id: number;
+  centroid: unknown;
   companyCount: number;
-  centroid?: Record<string, number>;
-  topCompanies?: Array<{ uid: string; name: string; score: number }>;
+  sampleCompanies: string[];
 }
 
 export interface AnomalyRequest {
@@ -591,22 +879,33 @@ export interface RfmSegmentsResponse {
 }
 
 export interface RfmSegment {
-  segment: string;
+  name: string;
   count: number;
-  avgRecency: number;
-  avgFrequency: number;
-  avgMonetary: number;
-}
-
-export interface CohortResponse {
-  cohorts: unknown[];
-  groupBy: string;
-  metric: string;
+  description: string;
 }
 
 export interface CohortParams {
   groupBy?: string;
   metric?: string;
+}
+
+export interface CohortResponse {
+  cohorts: CohortEntry[];
+  groupBy: string;
+  metric: string;
+}
+
+export interface CohortEntry {
+  group: string;
+  count: number;
+  metric: string;
+}
+
+export interface CandidateParams {
+  sortBy?: string;
+  canton?: string;
+  page?: number;
+  pageSize?: number;
 }
 
 export interface AuditCandidate {
@@ -619,13 +918,6 @@ export interface AuditCandidate {
   auditorCategory?: string;
 }
 
-export interface AuditCandidateParams {
-  sortBy?: string;
-  canton?: string;
-  page?: number;
-  pageSize?: number;
-}
-
 // --- Dossiers ---
 
 export interface CreateDossierRequest {
@@ -635,7 +927,7 @@ export interface CreateDossierRequest {
 
 export interface Dossier {
   id: string;
-  userId?: string;
+  userId: string;
   companyUid: string;
   companyName: string;
   level: string;
@@ -662,7 +954,7 @@ export interface GraphResponse {
 export interface GraphNode {
   id: string;
   name: string;
-  uid?: string;
+  uid: string;
   nodeType: string;
   capital?: number;
   canton?: string;
@@ -675,7 +967,7 @@ export interface GraphLink {
   source: string;
   target: string;
   linkType: string;
-  label?: string;
+  label: string;
 }
 
 export interface NetworkAnalysisRequest {
@@ -691,6 +983,6 @@ export interface NetworkAnalysisResponse {
 
 export interface NetworkCluster {
   id: number;
-  nodeIds: string[];
-  density?: number;
+  companyUids: string[];
+  sharedPersons: string[];
 }

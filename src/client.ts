@@ -36,8 +36,8 @@ import {
   Webhooks,
 } from "./resources/index.js";
 
-const VERSION = "2.0.0";
-const DEFAULT_BASE_URL = "https://api.vynco.ch";
+const VERSION = "3.0.0";
+const DEFAULT_BASE_URL = "https://vynco.ch/api";
 const DEFAULT_TIMEOUT = 30_000;
 const DEFAULT_MAX_RETRIES = 2;
 const INITIAL_RETRY_DELAY = 500;
@@ -151,6 +151,25 @@ export class VyncoClient {
     const contentType = response.headers.get("content-type") ?? undefined;
     const disposition = response.headers.get("content-disposition") ?? undefined;
     let filename: string | undefined;
+    if (disposition) {
+      const match = disposition.match(/filename="?([^"]+)"?/);
+      if (match) filename = match[1];
+    }
+    return { bytes, contentType, filename, meta } as ExportFile & { meta: ResponseMeta };
+  }
+
+  /** @internal — returns raw bytes for POST requests that return files (e.g. Excel export). */
+  async _requestBytesWithBody(method: string, path: string, body: unknown): Promise<ExportFile> {
+    const response = await this.#fetchWithRetry(method, path, {
+      body: JSON.stringify(body),
+      headers: { "Content-Type": "application/json" },
+    });
+    this.#throwIfError(response, undefined);
+    const meta = parseResponseMeta(response.headers);
+    const bytes = await response.arrayBuffer();
+    const contentType = response.headers.get("content-type") ?? "application/octet-stream";
+    const disposition = response.headers.get("content-disposition") ?? undefined;
+    let filename = "";
     if (disposition) {
       const match = disposition.match(/filename="?([^"]+)"?/);
       if (match) filename = match[1];

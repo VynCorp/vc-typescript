@@ -5,6 +5,8 @@ import type {
   CreateTeamRequest,
   Invitation,
   InviteMemberRequest,
+  JoinTeamRequest,
+  JoinTeamResponse,
   Team,
   TeamMember,
   UpdateMemberRoleRequest,
@@ -54,5 +56,9 @@ export class Teams {
 
   async billingSummary(): Promise<VyncoResponse<BillingSummary>> {
     return this.#client._request("GET", "/v1/teams/me/billing-summary");
+  }
+
+  async join(request: JoinTeamRequest): Promise<VyncoResponse<JoinTeamResponse>> {
+    return this.#client._requestWithBody("POST", "/v1/teams/join", request);
   }
 }

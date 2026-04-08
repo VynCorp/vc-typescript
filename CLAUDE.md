@@ -27,11 +27,11 @@ If `pnpm` is not installed globally, prefix with `npx`: `npx pnpm build`.
 
 **Single entry point**: Everything is exported from `src/index.ts`. The public API surface is `VyncoClient` plus typed resources, errors, and data model interfaces.
 
-**Base URL**: Default is `https://api.vynco.ch`. The health endpoint is at `/health` (no `/v1` prefix). All other endpoints use `/v1/` prefix (e.g., `/v1/companies`, `/v1/credits/balance`).
+**Base URL**: Default is `https://vynco.ch/api`. The health endpoint is at `/health` (no `/v1` prefix). All other endpoints use `/v1/` prefix (e.g., `/v1/companies`, `/v1/credits/balance`).
 
 **Client → Resources pattern**: `VyncoClient` (in `src/client.ts`) owns the HTTP transport layer and exposes internal `_request*` methods (underscore-prefixed, not truly private — used by resource classes). Each resource class (e.g., `Companies`, `Credits`) takes a `VyncoClient` reference and calls these internal methods. Resources are instantiated in the `VyncoClient` constructor and exposed as readonly properties (`client.companies`, `client.credits`, etc.).
 
-**18 resource modules** (69 endpoints): health, companies, auditors, dashboard, screening, watchlists, webhooks, exports, ai, apiKeys, credits, billing, teams, changes, persons, analytics, dossiers, graph.
+**18 resource modules** (80+ endpoints): health, companies, auditors, dashboard, screening, watchlists, webhooks, exports, ai, apiKeys, credits, billing, teams, changes, persons, analytics, dossiers, graph.
 
 **Key internal methods on VyncoClient**:
 - `_request<T>(method, path)` — GET with no body, returns `VyncoResponse<T>`
@@ -39,6 +39,7 @@ If `pnpm` is not installed globally, prefix with `npx`: `npx pnpm build`.
 - `_requestWithParams<T>(method, path, params)` — GET with query string
 - `_requestEmpty(method, path)` — DELETE, returns `ResponseMeta` only
 - `_requestBytes(method, path)` — GET returning raw bytes for file downloads (exports, graph export)
+- `_requestBytesWithBody(method, path, body)` — POST returning raw bytes (Excel export)
 
 **Error mapping**: HTTP status codes map to typed error classes in `src/errors.ts`. All extend `VyncoError`. The mapping lives in `#throwIfError` in `client.ts`. Includes 409 → `ConflictError`.
 

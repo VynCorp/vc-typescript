@@ -31,4 +31,12 @@ export class Dossiers {
       `/v1/dossiers/${encodeURIComponent(id)}`,
     );
   }
+
+  async generate(uid: string): Promise<VyncoResponse<Dossier>> {
+    return this.#client._requestWithBody(
+      "POST",
+      `/v1/dossiers/${encodeURIComponent(uid)}/generate`,
+      {},
+    );
+  }
 }

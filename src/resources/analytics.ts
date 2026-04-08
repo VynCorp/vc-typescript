@@ -4,14 +4,13 @@ import type {
   AnomalyRequest,
   AnomalyResponse,
   AuditCandidate,
-  AuditCandidateParams,
   AuditorMarketShare,
+  CandidateParams,
   CantonDistribution,
   ClusterRequest,
   ClusterResponse,
   CohortParams,
   CohortResponse,
-  CompanyStatistics,
   PagedResponse,
   RfmSegmentsResponse,
 } from "../types.js";
@@ -52,12 +51,8 @@ export class Analytics {
     return this.#client._requestWithParams("GET", "/v1/analytics/cohorts", queryParams);
   }
 
-  async statistics(): Promise<VyncoResponse<CompanyStatistics>> {
-    return this.#client._request("GET", "/v1/analytics/statistics");
-  }
-
   async candidates(
-    params?: AuditCandidateParams,
+    params?: CandidateParams,
   ): Promise<VyncoResponse<PagedResponse<AuditCandidate>>> {
     if (!params) return this.#client._request("GET", "/v1/analytics/candidates");
     const queryParams: Record<string, string> = {};

@@ -33,6 +33,10 @@ console.log(`Found ${companies.data.total} companies`);
 const company = await client.companies.get("CHE-105.805.649");
 console.log(company.data.name);
 
+// Get full company profile with persons, changes, relationships
+const full = await client.companies.getFull("CHE-105.805.649");
+console.log(`${full.data.persons.length} board members`);
+
 // Screen a name against sanctions lists
 const screening = await client.screening.screen({ name: "Test Corp" });
 console.log(`Risk level: ${screening.data.riskLevel}`);
@@ -49,7 +53,7 @@ import { VyncoClient } from "@vynco/sdk";
 
 const client = new VyncoClient({
   apiKey: "vc_live_your_api_key",  // required — vc_live_* or vc_test_*
-  baseUrl: "https://api.vynco.ch", // default
+  baseUrl: "https://vynco.ch/api", // default
   timeout: 30_000,                 // default: 30s
   maxRetries: 2,                   // default: 2 (retries on 429 & 5xx)
 });
@@ -60,7 +64,7 @@ const client = new VyncoClient({
 | Resource | Methods | Description |
 |----------|---------|-------------|
 | `client.health` | `check` | API health status |
-| `client.companies` | `list`, `get`, `count`, `events`, `statistics`, `compare`, `news`, `reports`, `relationships`, `hierarchy`, `fingerprint`, `nearby` | Swiss company data |
+| `client.companies` | `list`, `get`, `getFull`, `count`, `events`, `statistics`, `compare`, `news`, `reports`, `relationships`, `hierarchy`, `classification`, `fingerprint`, `structure`, `acquisitions`, `nearby`, `notes`, `createNote`, `updateNote`, `deleteNote`, `tags`, `createTag`, `deleteTag`, `allTags`, `exportExcel` | Swiss company data |
 | `client.auditors` | `history`, `tenures` | Auditor appointment history |
 | `client.dashboard` | `get` | Dashboard summary data |
 | `client.screening` | `screen` | Sanctions & watchlist screening |
@@ -71,14 +75,14 @@ const client = new VyncoClient({
 | `client.apiKeys` | `list`, `create`, `revoke` | API key management |
 | `client.credits` | `balance`, `usage`, `history` | Credit balance & usage |
 | `client.billing` | `createCheckout`, `createPortal` | Stripe billing sessions |
-| `client.teams` | `me`, `create`, `members`, `inviteMember`, `updateMemberRole`, `removeMember`, `billingSummary` | Team management |
+| `client.teams` | `me`, `create`, `members`, `inviteMember`, `updateMemberRole`, `removeMember`, `billingSummary`, `join` | Team management |
 | `client.changes` | `list`, `byCompany`, `statistics` | SOGC company change feed |
-| `client.persons` | `boardMembers` | Board member data |
-| `client.analytics` | `cantons`, `auditors`, `cluster`, `anomalies`, `rfmSegments`, `cohorts`, `statistics`, `candidates` | Analytics & insights |
-| `client.dossiers` | `create`, `list`, `get`, `delete` | Company dossier reports |
+| `client.persons` | `boardMembers`, `search`, `get` | Board member & person data |
+| `client.analytics` | `cantons`, `auditors`, `cluster`, `anomalies`, `rfmSegments`, `cohorts`, `candidates` | Analytics & insights |
+| `client.dossiers` | `create`, `list`, `get`, `delete`, `generate` | Company dossier reports |
 | `client.graph` | `get`, `export`, `analyze` | Corporate relationship graphs |
 
-**18 resources, 69 endpoints.**
+**18 resources, 80+ endpoints.**
 
 ## Response Metadata
 

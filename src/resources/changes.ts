@@ -20,7 +20,7 @@ export class Changes {
   ): Promise<VyncoResponse<PagedResponse<CompanyChange>>> {
     if (!params) return this.#client._request("GET", "/v1/changes");
     const queryParams: Record<string, string> = {};
-    if (params.type != null) queryParams.type = params.type;
+    if (params.changeType != null) queryParams.change_type = params.changeType;
     if (params.since != null) queryParams.since = params.since;
     if (params.until != null) queryParams.until = params.until;
     if (params.companySearch != null) queryParams.companySearch = params.companySearch;

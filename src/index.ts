@@ -56,10 +56,15 @@ export type {
   CompanyListParams,
   CompanyCount,
   CompanyStatistics,
+  CompanyFullResponse,
+  PersonEntry,
+  ChangeEntry,
+  RelationshipEntry,
   CompanyEvent,
   EventListResponse,
   CompareRequest,
   CompareResponse,
+  ComparisonDimension,
   NewsItem,
   CompanyReport,
   Relationship,
@@ -67,12 +72,34 @@ export type {
   Fingerprint,
   NearbyCompany,
   NearbyParams,
+  // Classification
+  Classification,
+  // Corporate Structure
+  CorporateStructure,
+  RelatedCompanyEntry,
+  // Acquisitions
+  Acquisition,
+  // Notes
+  Note,
+  CreateNoteRequest,
+  UpdateNoteRequest,
+  // Tags
+  Tag,
+  CreateTagRequest,
+  TagSummary,
+  // Excel Export
+  ExcelExportRequest,
+  ExcelExportFilter,
   // Auditors
   AuditorHistoryResponse,
   AuditorTenure,
   AuditorTenureParams,
   // Dashboard
   DashboardResponse,
+  DataCompleteness,
+  PipelineStatus,
+  AuditorTenureStats,
+  LongestTenure,
   // Screening
   ScreeningRequest,
   ScreeningResponse,
@@ -111,6 +138,7 @@ export type {
   // Credits
   CreditBalance,
   CreditUsage,
+  UsagePeriod,
   UsageRow,
   CreditHistory,
   CreditLedgerEntry,
@@ -124,13 +152,20 @@ export type {
   InviteMemberRequest,
   UpdateMemberRoleRequest,
   Invitation,
+  JoinTeamRequest,
+  JoinTeamResponse,
   BillingSummary,
+  MemberUsage,
   // Changes
   CompanyChange,
   ChangeListParams,
   ChangeStatistics,
   // Persons
   BoardMember,
+  PersonSearchParams,
+  PersonSearchResult,
+  PersonDetail,
+  PersonRoleDetail,
   // Analytics
   CantonDistribution,
   AuditorMarketShare,
@@ -142,9 +177,10 @@ export type {
   RfmSegmentsResponse,
   RfmSegment,
   CohortResponse,
+  CohortEntry,
   CohortParams,
+  CandidateParams,
   AuditCandidate,
-  AuditCandidateParams,
   // Dossiers
   CreateDossierRequest,
   Dossier,

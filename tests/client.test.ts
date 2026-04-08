@@ -48,7 +48,7 @@ describe("configuration", () => {
 
     server.use(
       http.get("https://test.api.vynco.ch/v1/credits/balance", () =>
-        HttpResponse.json({ balance: 100, monthlyCredits: 500, usedThisMonth: 50, tier: "starter" }),
+        HttpResponse.json({ balance: 100, monthlyCredits: 500, usedThisMonth: 50, tier: "starter", overageRate: 0 }),
       ),
     );
 
@@ -66,7 +66,7 @@ describe("authentication", () => {
     server.use(
       http.get(`${BASE_URL}/health`, ({ request }) => {
         capturedAuth = request.headers.get("authorization") ?? "";
-        return HttpResponse.json({ status: "healthy" });
+        return HttpResponse.json({ status: "healthy", database: "ok", redis: "ok", version: "3.0.0" });
       }),
     );
 
@@ -184,7 +184,7 @@ describe("response metadata", () => {
     server.use(
       http.get(`${BASE_URL}/v1/credits/balance`, () =>
         HttpResponse.json(
-          { balance: 100, monthlyCredits: 500, usedThisMonth: 50, tier: "starter" },
+          { balance: 100, monthlyCredits: 500, usedThisMonth: 50, tier: "starter", overageRate: 0 },
           {
             headers: {
               "x-request-id": "req-123",
@@ -213,7 +213,7 @@ describe("response metadata", () => {
   it("handles missing metadata headers gracefully", async () => {
     server.use(
       http.get(`${BASE_URL}/v1/credits/balance`, () =>
-        HttpResponse.json({ balance: 0, monthlyCredits: 0, usedThisMonth: 0, tier: "" }),
+        HttpResponse.json({ balance: 0, monthlyCredits: 0, usedThisMonth: 0, tier: "", overageRate: 0 }),
       ),
     );
 
@@ -232,12 +232,14 @@ describe("health", () => {
     server.use(
       http.get(`${BASE_URL}/health`, ({ request }) => {
         capturedUrl = request.url;
-        return HttpResponse.json({ status: "healthy", version: "2.0.0", uptime: "5d 3h" });
+        return HttpResponse.json({ status: "healthy", database: "ok", redis: "ok", version: "3.0.0" });
       }),
     );
 
     const resp = await makeClient().health.check();
     expect(resp.data.status).toBe("healthy");
+    expect(resp.data.database).toBe("ok");
+    expect(resp.data.redis).toBe("ok");
     expect(capturedUrl).toContain("/health");
     expect(capturedUrl).not.toContain("/v1/health");
   });
@@ -256,10 +258,18 @@ describe("companies", () => {
       }),
     );
 
-    await makeClient().companies.list({ search: "Nestlé", canton: "VD", page: 1, pageSize: 20 });
+    await makeClient().companies.list({
+      search: "Nestlé", canton: "VD", status: "active",
+      legalForm: "AG", capitalMin: 100000, sortBy: "name",
+      page: 1, pageSize: 20,
+    });
     const url = new URL(capturedUrl);
     expect(url.searchParams.get("search")).toBe("Nestlé");
     expect(url.searchParams.get("canton")).toBe("VD");
+    expect(url.searchParams.get("status")).toBe("active");
+    expect(url.searchParams.get("legalForm")).toBe("AG");
+    expect(url.searchParams.get("capitalMin")).toBe("100000");
+    expect(url.searchParams.get("sortBy")).toBe("name");
   });
 
   it("gets company by UID", async () => {
@@ -267,7 +277,7 @@ describe("companies", () => {
       http.get(`${BASE_URL}/v1/companies/:uid`, ({ params }) =>
         HttpResponse.json({
           uid: params.uid, name: "Test AG", canton: "ZH", status: "active",
-          legalForm: "AG", auditorCategory: "regulated",
+          legalForm: "AG", auditorCategory: "regulated", currency: "CHF",
         }),
       ),
     );
@@ -275,6 +285,27 @@ describe("companies", () => {
     const resp = await makeClient().companies.get("CHE-123.456.789");
     expect(resp.data.uid).toBe("CHE-123.456.789");
     expect(resp.data.name).toBe("Test AG");
+    expect(resp.data.currency).toBe("CHF");
+  });
+
+  it("gets full company profile", async () => {
+    server.use(
+      http.get(`${BASE_URL}/v1/companies/:uid/full`, () =>
+        HttpResponse.json({
+          company: { uid: "CHE-123", name: "Test AG", canton: "ZH" },
+          persons: [{ personId: "p-1", firstName: "Hans", lastName: "Mueller", role: "CEO", since: "2020-01-01" }],
+          recentChanges: [{ id: "c-1", companyUid: "CHE-123", changeType: "capital_change", detectedAt: "2026-03-01" }],
+          relationships: [{ relatedUid: "CHE-200", relatedName: "Partner GmbH", relationshipType: "shared_person" }],
+        }),
+      ),
+    );
+
+    const resp = await makeClient().companies.getFull("CHE-123");
+    expect(resp.data.company.uid).toBe("CHE-123");
+    expect(resp.data.persons).toHaveLength(1);
+    expect(resp.data.persons[0].role).toBe("CEO");
+    expect(resp.data.recentChanges).toHaveLength(1);
+    expect(resp.data.relationships[0].relationshipType).toBe("shared_person");
   });
 
   it("gets company count", async () => {
@@ -309,15 +340,21 @@ describe("companies", () => {
       http.post(`${BASE_URL}/v1/companies/compare`, async ({ request }) => {
         capturedBody = await request.json();
         return HttpResponse.json({
-          companies: [], dimensions: ["capital"],
-          similarities: ["same canton"], differences: ["different capital"],
+          uids: ["CHE-1", "CHE-2"],
+          names: ["Test AG", "Example GmbH"],
+          dimensions: [
+            { field: "canton", label: "Canton", values: ["ZH", "BE"] },
+            { field: "legalForm", label: "Legal Form", values: ["AG", "GmbH"] },
+          ],
         });
       }),
     );
 
     const resp = await makeClient().companies.compare({ uids: ["CHE-1", "CHE-2"] });
     expect(capturedBody).toEqual({ uids: ["CHE-1", "CHE-2"] });
-    expect(resp.data.dimensions).toContain("capital");
+    expect(resp.data.uids).toHaveLength(2);
+    expect(resp.data.dimensions).toHaveLength(2);
+    expect(resp.data.dimensions[0].field).toBe("canton");
   });
 
   it("gets company news", async () => {
@@ -337,7 +374,7 @@ describe("companies", () => {
     server.use(
       http.get(`${BASE_URL}/v1/companies/:uid/reports`, () =>
         HttpResponse.json([
-          { reportType: "annual", description: "Annual Report 2025" },
+          { reportType: "annual", description: "Annual Report 2025", publicationDate: "2026-01-01" },
         ]),
       ),
     );
@@ -346,13 +383,30 @@ describe("companies", () => {
     expect(resp.data).toHaveLength(1);
   });
 
+  it("gets company classification", async () => {
+    server.use(
+      http.get(`${BASE_URL}/v1/companies/:uid/classification`, ({ params }) =>
+        HttpResponse.json({
+          companyUid: params.uid, sectorCode: "FIN", sectorName: "Financial Services",
+          method: "KeywordMatch", classifiedAt: "2026-04-01T00:00:00Z",
+          auditorCategory: "big4", isFinmaRegulated: true,
+        }),
+      ),
+    );
+
+    const resp = await makeClient().companies.classification("CHE-123");
+    expect(resp.data.companyUid).toBe("CHE-123");
+    expect(resp.data.sectorCode).toBe("FIN");
+    expect(resp.data.isFinmaRegulated).toBe(true);
+  });
+
   it("gets company fingerprint", async () => {
     server.use(
       http.get(`${BASE_URL}/v1/companies/:uid/fingerprint`, ({ params }) =>
         HttpResponse.json({
           companyUid: params.uid, name: "Test AG", changeFrequency: 3,
           boardSize: 5, companyAge: 10, canton: "ZH", legalForm: "AG",
-          hasParentCompany: false, subsidiaryCount: 2,
+          hasParentCompany: false, subsidiaryCount: 2, capitalCurrency: "CHF",
           generatedAt: "2026-01-01", fingerprintVersion: "1.0",
         }),
       ),
@@ -361,6 +415,40 @@ describe("companies", () => {
     const resp = await makeClient().companies.fingerprint("CHE-123");
     expect(resp.data.companyUid).toBe("CHE-123");
     expect(resp.data.boardSize).toBe(5);
+    expect(resp.data.capitalCurrency).toBe("CHF");
+  });
+
+  it("gets corporate structure", async () => {
+    server.use(
+      http.get(`${BASE_URL}/v1/companies/:uid/structure`, () =>
+        HttpResponse.json({
+          headOffices: [{ uid: "CHE-300", name: "Parent AG" }],
+          branchOffices: [],
+          acquisitions: [{ uid: "CHE-400", name: "Acquired GmbH" }],
+          acquiredBy: [],
+        }),
+      ),
+    );
+
+    const resp = await makeClient().companies.structure("CHE-123");
+    expect(resp.data.headOffices).toHaveLength(1);
+    expect(resp.data.headOffices[0].name).toBe("Parent AG");
+    expect(resp.data.acquisitions).toHaveLength(1);
+    expect(resp.data.branchOffices).toHaveLength(0);
+  });
+
+  it("gets company acquisitions", async () => {
+    server.use(
+      http.get(`${BASE_URL}/v1/companies/:uid/acquisitions`, () =>
+        HttpResponse.json([
+          { acquirerUid: "CHE-123", acquiredUid: "CHE-200", acquirerName: "Test AG", acquiredName: "Target GmbH", createdAt: "2025-06-15" },
+        ]),
+      ),
+    );
+
+    const resp = await makeClient().companies.acquisitions("CHE-123");
+    expect(resp.data).toHaveLength(1);
+    expect(resp.data[0].acquirerUid).toBe("CHE-123");
   });
 
   it("gets nearby companies", async () => {
@@ -381,6 +469,106 @@ describe("companies", () => {
     expect(url.searchParams.get("radiusKm")).toBe("5");
     expect(resp.data).toHaveLength(1);
   });
+
+  it("manages notes (list and create)", async () => {
+    server.use(
+      http.get(`${BASE_URL}/v1/companies/:uid/notes`, () =>
+        HttpResponse.json([
+          { id: "note-1", companyUid: "CHE-123", content: "Interesting", noteType: "note", isPrivate: false, createdAt: "2026-01-01", updatedAt: "2026-01-01" },
+        ]),
+      ),
+    );
+
+    const listResp = await makeClient().companies.notes("CHE-123");
+    expect(listResp.data).toHaveLength(1);
+    expect(listResp.data[0].content).toBe("Interesting");
+
+    server.use(
+      http.post(`${BASE_URL}/v1/companies/:uid/notes`, async ({ request }) => {
+        const body = await request.json() as Record<string, unknown>;
+        return HttpResponse.json({
+          id: "note-2", companyUid: "CHE-123", content: body.content,
+          noteType: "annotation", rating: 4, isPrivate: true,
+          createdAt: "2026-01-01", updatedAt: "2026-01-01",
+        });
+      }),
+    );
+
+    const createResp = await makeClient().companies.createNote("CHE-123", {
+      content: "New note", noteType: "annotation", rating: 4, isPrivate: true,
+    });
+    expect(createResp.data.id).toBe("note-2");
+    expect(createResp.data.rating).toBe(4);
+  });
+
+  it("deletes a note", async () => {
+    server.use(
+      http.delete(`${BASE_URL}/v1/companies/:uid/notes/:noteId`, () =>
+        new HttpResponse(null, { status: 204 }),
+      ),
+    );
+
+    const meta = await makeClient().companies.deleteNote("CHE-123", "note-1");
+    expect(meta).toBeDefined();
+  });
+
+  it("manages tags (list, create, allTags)", async () => {
+    server.use(
+      http.get(`${BASE_URL}/v1/companies/:uid/tags`, () =>
+        HttpResponse.json([
+          { id: "tag-1", companyUid: "CHE-123", tagName: "risk-high", color: "#FF0000", createdAt: "2026-01-01" },
+        ]),
+      ),
+    );
+
+    const listResp = await makeClient().companies.tags("CHE-123");
+    expect(listResp.data).toHaveLength(1);
+    expect(listResp.data[0].tagName).toBe("risk-high");
+
+    server.use(
+      http.post(`${BASE_URL}/v1/companies/:uid/tags`, () =>
+        HttpResponse.json({
+          id: "tag-2", companyUid: "CHE-123", tagName: "audit-needed", createdAt: "2026-01-01",
+        }),
+      ),
+    );
+
+    const createResp = await makeClient().companies.createTag("CHE-123", { tagName: "audit-needed" });
+    expect(createResp.data.tagName).toBe("audit-needed");
+
+    server.use(
+      http.get(`${BASE_URL}/v1/tags`, () =>
+        HttpResponse.json([
+          { tagName: "risk-high", count: 12 },
+          { tagName: "audit-needed", count: 5 },
+        ]),
+      ),
+    );
+
+    const allResp = await makeClient().companies.allTags();
+    expect(allResp.data).toHaveLength(2);
+    expect(allResp.data[0].count).toBe(12);
+  });
+
+  it("exports to Excel (bytes with body)", async () => {
+    server.use(
+      http.post(`${BASE_URL}/v1/companies/export/excel`, () =>
+        new HttpResponse("uid,name\nCHE-123,Test AG\n", {
+          status: 200,
+          headers: {
+            "content-type": "text/csv",
+            "content-disposition": 'attachment; filename="export.csv"',
+          },
+        }),
+      ),
+    );
+
+    const file = await makeClient().companies.exportExcel({ uids: ["CHE-123"] });
+    expect(file.contentType).toBe("text/csv");
+    expect(file.filename).toBe("export.csv");
+    const text = new TextDecoder().decode(file.bytes);
+    expect(text).toContain("Test AG");
+  });
 });
 
 // --- Auditors ---
@@ -391,13 +579,14 @@ describe("auditors", () => {
       http.get(`${BASE_URL}/v1/companies/:uid/auditor-history`, ({ params }) =>
         HttpResponse.json({
           companyUid: params.uid, companyName: "Test AG",
-          currentAuditor: "PwC", history: [],
+          currentAuditor: { id: "at-1", companyUid: params.uid, companyName: "Test AG", auditorName: "PwC", isCurrent: true, source: "sogc" },
+          history: [],
         }),
       ),
     );
 
     const resp = await makeClient().auditors.history("CHE-123");
-    expect(resp.data.currentAuditor).toBe("PwC");
+    expect(resp.data.currentAuditor?.auditorName).toBe("PwC");
   });
 
   it("lists auditor tenures with params", async () => {
@@ -420,15 +609,22 @@ describe("auditors", () => {
 // --- Dashboard ---
 
 describe("dashboard", () => {
-  it("gets dashboard data", async () => {
+  it("gets typed dashboard data", async () => {
     server.use(
       http.get(`${BASE_URL}/v1/dashboard`, () =>
-        HttpResponse.json({ totalCompanies: 1000, recentChanges: 50 }),
+        HttpResponse.json({
+          generatedAt: "2026-04-01",
+          data: { totalCompanies: 500000, enrichedCompanies: 400000, companiesWithIndustry: 350000, companiesWithGeo: 300000, totalPersons: 1000000, totalChanges: 50000, totalSogcPublications: 200000 },
+          pipelines: [{ id: "zefix-sync", status: "completed", itemsProcessed: 10000, lastCompletedAt: "2026-04-01" }],
+          auditorTenures: { totalTracked: 100000, currentAuditors: 80000, tenuresOver10Years: 5000, tenuresOver7Years: 15000, avgTenureYears: 6.3 },
+        }),
       ),
     );
 
     const resp = await makeClient().dashboard.get();
-    expect(resp.data.totalCompanies).toBe(1000);
+    expect(resp.data.data.totalCompanies).toBe(500000);
+    expect(resp.data.pipelines).toHaveLength(1);
+    expect(resp.data.auditorTenures.avgTenureYears).toBe(6.3);
   });
 });
 
@@ -461,7 +657,7 @@ describe("watchlists", () => {
     server.use(
       http.get(`${BASE_URL}/v1/watchlists`, () =>
         HttpResponse.json([
-          { id: "w1", name: "My List", createdAt: "2026-01-01", companyCount: 5 },
+          { id: "w1", name: "My List", description: "", companyCount: 5, createdAt: "2026-01-01" },
         ]),
       ),
     );
@@ -477,7 +673,7 @@ describe("watchlists", () => {
       http.post(`${BASE_URL}/v1/watchlists`, async ({ request }) => {
         capturedBody = await request.json();
         return HttpResponse.json({
-          id: "w1", name: "New List", createdAt: "2026-01-01", companyCount: 0,
+          id: "w1", name: "New List", description: "", createdAt: "2026-01-01", updatedAt: "",
         });
       }),
     );
@@ -504,7 +700,7 @@ describe("watchlists", () => {
     server.use(
       http.post(`${BASE_URL}/v1/watchlists/:id/companies`, async ({ request }) => {
         capturedBody = await request.json();
-        return HttpResponse.json({ added: 2, alreadyPresent: 0 });
+        return HttpResponse.json({ added: 2 });
       }),
     );
 
@@ -524,8 +720,11 @@ describe("webhooks", () => {
       http.post(`${BASE_URL}/v1/webhooks`, async ({ request }) => {
         capturedBody = await request.json();
         return HttpResponse.json({
-          id: "wh1", url: "https://example.com/hook", status: "active",
-          signingSecret: "whsec_abc123", createdAt: "2026-01-01",
+          webhook: {
+            id: "wh1", url: "https://example.com/hook", description: "", eventFilters: [], companyFilters: [],
+            status: "active", createdAt: "2026-01-01", updatedAt: "",
+          },
+          signingSecret: "whsec_abc123",
         });
       }),
     );
@@ -536,14 +735,15 @@ describe("webhooks", () => {
     });
     expect(capturedBody).toMatchObject({ url: "https://example.com/hook" });
     expect(resp.data.signingSecret).toBe("whsec_abc123");
+    expect(resp.data.webhook.id).toBe("wh1");
   });
 
   it("updates a webhook", async () => {
     server.use(
       http.put(`${BASE_URL}/v1/webhooks/:id`, () =>
         HttpResponse.json({
-          id: "wh1", url: "https://example.com/hook2", status: "active",
-          createdAt: "2026-01-01",
+          id: "wh1", url: "https://example.com/hook2", description: "", eventFilters: [], companyFilters: [],
+          status: "active", createdAt: "2026-01-01", updatedAt: "",
         }),
       ),
     );
@@ -566,7 +766,7 @@ describe("webhooks", () => {
   it("tests a webhook", async () => {
     server.use(
       http.post(`${BASE_URL}/v1/webhooks/:id/test`, () =>
-        HttpResponse.json({ success: true, httpStatus: 200, deliveredAt: "2026-01-01" }),
+        HttpResponse.json({ success: true, httpStatus: 200 }),
       ),
     );
 
@@ -599,7 +799,7 @@ describe("exports", () => {
     server.use(
       http.get(`${BASE_URL}/v1/exports/:id`, () =>
         HttpResponse.json({
-          job: { id: "e1", status: "completed", format: "csv", createdAt: "2026-01-01", totalRows: 500 },
+          job: { id: "e1", status: "completed", format: "ndjson", createdAt: "2026-01-01", totalRows: 500 },
         }),
       ),
     );
@@ -674,9 +874,9 @@ describe("changes", () => {
       }),
     );
 
-    await makeClient().changes.list({ type: "StatusChange", page: 1, pageSize: 10 });
+    await makeClient().changes.list({ changeType: "StatusChange", page: 1, pageSize: 10 });
     const url = new URL(capturedUrl);
-    expect(url.searchParams.get("type")).toBe("StatusChange");
+    expect(url.searchParams.get("change_type")).toBe("StatusChange");
     expect(url.searchParams.get("pageSize")).toBe("10");
   });
 
@@ -719,14 +919,53 @@ describe("persons", () => {
     server.use(
       http.get(`${BASE_URL}/v1/persons/board-members/:uid`, () =>
         HttpResponse.json([
-          { name: "Hans Müller", role: "CEO", signatureAuthority: "sole" },
+          { id: "p-1", firstName: "Hans", lastName: "Mueller", role: "Director", roleCategory: "board", signingAuthority: "sole", since: "2020-01-01" },
+          { id: "p-2", firstName: "Anna", lastName: "Schmidt", role: "Secretary", roleCategory: "management", signingAuthority: "collective", since: "2021-06-15" },
         ]),
       ),
     );
 
     const resp = await makeClient().persons.boardMembers("CHE-123");
-    expect(resp.data).toHaveLength(1);
-    expect(resp.data[0].name).toBe("Hans Müller");
+    expect(resp.data).toHaveLength(2);
+    expect(resp.data[0].lastName).toBe("Mueller");
+    expect(resp.data[1].roleCategory).toBe("management");
+  });
+
+  it("searches persons with pagination", async () => {
+    let capturedUrl = "";
+
+    server.use(
+      http.get(`${BASE_URL}/v1/persons/search`, ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json({
+          items: [{ id: "p-1", fullName: "Hans Mueller", firstName: "Hans", lastName: "Mueller", roleCount: 3 }],
+          total: 1, page: 1, pageSize: 10,
+        });
+      }),
+    );
+
+    const resp = await makeClient().persons.search({ q: "Mueller", page: 1, pageSize: 10 });
+    const url = new URL(capturedUrl);
+    expect(url.searchParams.get("q")).toBe("Mueller");
+    expect(resp.data.total).toBe(1);
+    expect(resp.data.items[0].fullName).toBe("Hans Mueller");
+  });
+
+  it("gets person detail", async () => {
+    server.use(
+      http.get(`${BASE_URL}/v1/persons/:id`, () =>
+        HttpResponse.json({
+          id: "p-1", fullName: "Hans Mueller", firstName: "Hans", lastName: "Mueller",
+          placeOfOrigin: "Zürich", nationality: "CH",
+          roles: [{ companyUid: "CHE-123", companyName: "Test AG", roleFunction: "Director", roleCategory: "board", isCurrent: true }],
+        }),
+      ),
+    );
+
+    const resp = await makeClient().persons.get("p-1");
+    expect(resp.data.fullName).toBe("Hans Mueller");
+    expect(resp.data.roles).toHaveLength(1);
+    expect(resp.data.roles[0].companyUid).toBe("CHE-123");
   });
 });
 
@@ -740,7 +979,7 @@ describe("dossiers", () => {
       http.post(`${BASE_URL}/v1/dossiers`, async ({ request }) => {
         capturedBody = await request.json();
         return HttpResponse.json({
-          id: "d1", companyUid: "CHE-123", companyName: "Test AG",
+          id: "d1", userId: "usr-1", companyUid: "CHE-123", companyName: "Test AG",
           level: "standard", content: "Dossier content",
           sources: ["zefix"], createdAt: "2026-01-01",
         });
@@ -769,7 +1008,7 @@ describe("dossiers", () => {
     server.use(
       http.get(`${BASE_URL}/v1/dossiers/:id`, () =>
         HttpResponse.json({
-          id: "d1", companyUid: "CHE-123", companyName: "Test AG",
+          id: "d1", userId: "usr-1", companyUid: "CHE-123", companyName: "Test AG",
           level: "standard", content: "Full content",
           sources: [], createdAt: "2026-01-01",
         }),
@@ -790,6 +1029,22 @@ describe("dossiers", () => {
     const meta = await makeClient().dossiers.delete("d1");
     expect(meta).toBeDefined();
   });
+
+  it("generates a dossier for a company", async () => {
+    server.use(
+      http.post(`${BASE_URL}/v1/dossiers/:uid/generate`, () =>
+        HttpResponse.json({
+          id: "dos-gen-1", userId: "usr-1", companyUid: "CHE-123", companyName: "Test AG",
+          level: "summary", content: "Auto-generated dossier...",
+          sources: ["zefix", "sogc"], createdAt: "2026-01-01",
+        }),
+      ),
+    );
+
+    const resp = await makeClient().dossiers.generate("CHE-123");
+    expect(resp.data.id).toBe("dos-gen-1");
+    expect(resp.data.level).toBe("summary");
+  });
 });
 
 // --- Credits ---
@@ -798,13 +1053,14 @@ describe("credits", () => {
   it("gets credit balance", async () => {
     server.use(
       http.get(`${BASE_URL}/v1/credits/balance`, () =>
-        HttpResponse.json({ balance: 1000, monthlyCredits: 2000, usedThisMonth: 500, tier: "professional" }),
+        HttpResponse.json({ balance: 1000, monthlyCredits: 2000, usedThisMonth: 500, tier: "professional", overageRate: 0.05 }),
       ),
     );
 
     const resp = await makeClient().credits.balance();
     expect(resp.data.balance).toBe(1000);
     expect(resp.data.tier).toBe("professional");
+    expect(resp.data.overageRate).toBe(0.05);
   });
 
   it("gets usage with since parameter", async () => {
@@ -813,7 +1069,7 @@ describe("credits", () => {
     server.use(
       http.get(`${BASE_URL}/v1/credits/usage`, ({ request }) => {
         capturedUrl = request.url;
-        return HttpResponse.json({ operations: [], total: 0, period: "2026-01" });
+        return HttpResponse.json({ operations: [], total: 0, period: { since: "2026-01-01", until: "2026-02-01" } });
       }),
     );
 
@@ -843,8 +1099,8 @@ describe("api keys", () => {
       http.post(`${BASE_URL}/v1/api-keys`, async ({ request }) => {
         capturedBody = await request.json();
         return HttpResponse.json({
-          id: "k1", name: "test-key", key: "vc_test_raw123",
-          environment: "test", scopes: ["read"], createdAt: "2026-01-01",
+          key: "vc_test_raw123", id: "k1", name: "test-key", prefix: "vc_test_",
+          environment: "test", scopes: ["read"], createdAt: "2026-01-01", warning: "",
         });
       }),
     );
@@ -854,6 +1110,7 @@ describe("api keys", () => {
     });
     expect(capturedBody).toEqual({ name: "test-key", environment: "test", scopes: ["read"] });
     expect(resp.data.key).toBe("vc_test_raw123");
+    expect(resp.data.prefix).toBe("vc_test_");
   });
 
   it("revokes an API key and returns metadata only", async () => {
@@ -905,7 +1162,7 @@ describe("teams", () => {
     server.use(
       http.get(`${BASE_URL}/v1/teams/me`, () =>
         HttpResponse.json({
-          id: "t1", name: "My Team", tier: "professional",
+          id: "t1", name: "My Team", slug: "my-team", tier: "professional",
           creditBalance: 5000, monthlyCredits: 10000,
         }),
       ),
@@ -913,6 +1170,7 @@ describe("teams", () => {
 
     const resp = await makeClient().teams.me();
     expect(resp.data.name).toBe("My Team");
+    expect(resp.data.slug).toBe("my-team");
     expect(resp.data.tier).toBe("professional");
   });
 
@@ -920,7 +1178,7 @@ describe("teams", () => {
     server.use(
       http.get(`${BASE_URL}/v1/teams/me/members`, () =>
         HttpResponse.json([
-          { id: "m1", email: "test@test.com", role: "admin" },
+          { id: "m1", name: "Alice", email: "test@test.com", role: "admin" },
         ]),
       ),
     );
@@ -937,7 +1195,8 @@ describe("teams", () => {
       http.post(`${BASE_URL}/v1/teams/me/members`, async ({ request }) => {
         capturedBody = await request.json();
         return HttpResponse.json({
-          id: "inv1", email: "new@test.com", role: "member", createdAt: "2026-01-01",
+          id: "inv1", teamId: "t1", email: "new@test.com", role: "member",
+          token: "inv-token", status: "pending", createdAt: "2026-01-01", expiresAt: "2026-01-08",
         });
       }),
     );
@@ -945,6 +1204,7 @@ describe("teams", () => {
     const resp = await makeClient().teams.inviteMember({ email: "new@test.com", role: "member" });
     expect(capturedBody).toEqual({ email: "new@test.com", role: "member" });
     expect(resp.data.email).toBe("new@test.com");
+    expect(resp.data.token).toBe("inv-token");
   });
 
   it("removes a team member", async () => {
@@ -958,18 +1218,36 @@ describe("teams", () => {
     expect(meta).toBeDefined();
   });
 
-  it("gets billing summary", async () => {
+  it("gets billing summary with member usage", async () => {
     server.use(
       http.get(`${BASE_URL}/v1/teams/me/billing-summary`, () =>
         HttpResponse.json({
           tier: "professional", creditBalance: 5000,
-          monthlyCredits: 10000, usedThisMonth: 3000, members: 5,
+          monthlyCredits: 10000, usedThisMonth: 3000,
+          members: [{ userId: "usr-1", name: "Alice", creditsUsed: 300 }],
         }),
       ),
     );
 
     const resp = await makeClient().teams.billingSummary();
-    expect(resp.data.members).toBe(5);
+    expect(resp.data.members).toHaveLength(1);
+    expect(resp.data.members[0].creditsUsed).toBe(300);
+  });
+
+  it("joins a team via invitation token", async () => {
+    let capturedBody: unknown;
+
+    server.use(
+      http.post(`${BASE_URL}/v1/teams/join`, async ({ request }) => {
+        capturedBody = await request.json();
+        return HttpResponse.json({ teamId: "t1", teamName: "Acme Corp", role: "member" });
+      }),
+    );
+
+    const resp = await makeClient().teams.join({ token: "inv-token-123" });
+    expect(capturedBody).toEqual({ token: "inv-token-123" });
+    expect(resp.data.teamId).toBe("t1");
+    expect(resp.data.teamName).toBe("Acme Corp");
   });
 });
 
@@ -997,7 +1275,7 @@ describe("analytics", () => {
       http.post(`${BASE_URL}/v1/analytics/cluster`, async ({ request }) => {
         capturedBody = await request.json();
         return HttpResponse.json({
-          clusters: [{ id: 0, companyCount: 100 }],
+          clusters: [{ id: 0, centroid: {}, companyCount: 100, sampleCompanies: ["CHE-123"] }],
         });
       }),
     );
@@ -1005,6 +1283,7 @@ describe("analytics", () => {
     const resp = await makeClient().analytics.cluster({ algorithm: "kmeans", k: 5 });
     expect(capturedBody).toEqual({ algorithm: "kmeans", k: 5 });
     expect(resp.data.clusters).toHaveLength(1);
+    expect(resp.data.clusters[0].sampleCompanies).toContain("CHE-123");
   });
 
   it("detects anomalies", async () => {
@@ -1033,6 +1312,39 @@ describe("analytics", () => {
     expect(url.searchParams.get("canton")).toBe("ZH");
     expect(url.searchParams.get("sortBy")).toBe("shareCapital");
   });
+
+  it("gets RFM segments", async () => {
+    server.use(
+      http.get(`${BASE_URL}/v1/analytics/rfm-segments`, () =>
+        HttpResponse.json({
+          segments: [{ name: "Champions", count: 500, description: "Best customers" }],
+        }),
+      ),
+    );
+
+    const resp = await makeClient().analytics.rfmSegments();
+    expect(resp.data.segments).toHaveLength(1);
+    expect(resp.data.segments[0].name).toBe("Champions");
+  });
+
+  it("gets cohort analysis", async () => {
+    let capturedUrl = "";
+
+    server.use(
+      http.get(`${BASE_URL}/v1/analytics/cohorts`, ({ request }) => {
+        capturedUrl = request.url;
+        return HttpResponse.json({
+          cohorts: [{ group: "2025-Q1", count: 1000, metric: "registrations" }],
+          groupBy: "quarter", metric: "registrations",
+        });
+      }),
+    );
+
+    const resp = await makeClient().analytics.cohorts({ groupBy: "quarter", metric: "registrations" });
+    expect(new URL(capturedUrl).searchParams.get("groupBy")).toBe("quarter");
+    expect(resp.data.cohorts).toHaveLength(1);
+    expect(resp.data.cohorts[0].group).toBe("2025-Q1");
+  });
 });
 
 // --- Graph ---
@@ -1042,7 +1354,7 @@ describe("graph", () => {
     server.use(
       http.get(`${BASE_URL}/v1/graph/:uid`, () =>
         HttpResponse.json({
-          nodes: [{ id: "n1", name: "Test AG", nodeType: "company" }],
+          nodes: [{ id: "n1", name: "Test AG", uid: "CHE-123", nodeType: "company" }],
           links: [],
         }),
       ),
@@ -1060,7 +1372,8 @@ describe("graph", () => {
       http.post(`${BASE_URL}/v1/network/analyze`, async ({ request }) => {
         capturedBody = await request.json();
         return HttpResponse.json({
-          nodes: [], links: [], clusters: [],
+          nodes: [], links: [],
+          clusters: [{ id: 0, companyUids: ["CHE-1"], sharedPersons: ["p-1"] }],
         });
       }),
     );
@@ -1069,7 +1382,8 @@ describe("graph", () => {
       uids: ["CHE-1", "CHE-2"], overlay: "board-members",
     });
     expect(capturedBody).toEqual({ uids: ["CHE-1", "CHE-2"], overlay: "board-members" });
-    expect(resp.data.clusters).toHaveLength(0);
+    expect(resp.data.clusters).toHaveLength(1);
+    expect(resp.data.clusters[0].companyUids).toContain("CHE-1");
   });
 });
 
