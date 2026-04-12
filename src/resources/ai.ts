@@ -5,6 +5,8 @@ import type {
   AiDossierResponse,
   AiSearchRequest,
   AiSearchResponse,
+  BatchRiskScoreRequest,
+  BatchRiskScoreResponse,
   RiskScoreRequest,
   RiskScoreResponse,
 } from "../types.js";
@@ -27,5 +29,12 @@ export class Ai {
 
   async riskScore(request: RiskScoreRequest): Promise<VyncoResponse<RiskScoreResponse>> {
     return this.#client._requestWithBody("POST", "/v1/ai/risk-score", request);
+  }
+
+  /** Get AI risk scores for up to 50 companies in a single call. */
+  async riskScoreBatch(
+    request: BatchRiskScoreRequest,
+  ): Promise<VyncoResponse<BatchRiskScoreResponse>> {
+    return this.#client._requestWithBody("POST", "/v1/ai/risk-score/batch", request);
   }
 }

@@ -1,5 +1,79 @@
 # Changelog
 
+## 3.1.0 (2026-04-12)
+
+Alignment release matching the reference Python SDK (`vynco` v3.1.0) and Rust
+SDK (`vynco` v2.3.0). Adds the full v3.1 API surface: historical timelines,
+UBO resolution, similar companies, media-with-sentiment, person-centric
+networks, market flow analytics, canton migrations, industry benchmarking,
+batch operations, and saved alerts.
+
+### Added
+
+**2 new resources:**
+
+- **`client.alerts`** — saved queries with optional webhook delivery (`list`, `create`, `delete`)
+- **`client.ownership`** — ownership-chain trace with circular-ownership detection (`trace`)
+
+**14 new methods on existing resources:**
+
+- `companies.timeline(uid, params?)` — chronological event timeline
+- `companies.timelineSummary(uid, params?)` — AI-generated narrative summary
+- `companies.similar(uid, params?)` — similar-company scoring on industry/canton/capital/legal form/auditor tier
+- `companies.ubo(uid)` — ultimate beneficial owner resolution
+- `companies.media(uid, params?)` — news items with optional sentiment filter
+- `companies.mediaAnalyze(uid)` — trigger LLM sentiment analysis
+- `companies.exportCsv(request)` — canonical CSV export (replaces `exportExcel`, kept as deprecated alias)
+- `persons.network(id)` — person-centric network (companies + co-directors + stats)
+- `persons.boardMembers(uid, params?)` — now accepts optional `page`/`pageSize` (unpaginated call unchanged)
+- `analytics.flows(params?)` — registration/dissolution flows over time
+- `analytics.migrations(params?)` — canton-to-canton legal-seat migrations
+- `analytics.benchmark(uid, params?)` — company vs industry-peer percentile ranks
+- `screening.batch(request)` — batch sanctions screening (up to 100 UIDs)
+- `ai.riskScoreBatch(request)` — batch AI risk scoring (up to 50 UIDs)
+
+**New types (40+):**
+
+- `HierarchyEntity` (replaces `unknown` on `HierarchyResponse.parent/subsidiaries/siblings`)
+- Timeline: `TimelineParams`, `TimelineEvent`, `TimelineResponse`, `TimelineSummaryResponse`
+- Similar: `SimilarParams`, `SimilarCompanyResult`, `SimilarCompaniesResponse`
+- UBO/Ownership: `UboPerson`, `ChainLink`, `UboResponse`, `OwnershipRequest`, `OwnershipEntity`, `OwnershipLink`, `PersonCompanyRole`, `KeyPerson`, `CircularFlag`, `OwnershipResponse`
+- Media: `MediaParams`, `MediaItem`, `MediaResponse`, `MediaAnalysisResponse`
+- Alerts: `Alert`, `CreateAlertRequest`
+- Flows/Migrations/Benchmark: `FlowsParams`, `FlowDataPoint`, `FlowsResponse`, `MigrationsParams`, `MigrationFlow`, `MigrationResponse`, `BenchmarkParams`, `BenchmarkDimension`, `BenchmarkResponse`
+- Batch: `BatchScreeningRequest`, `BatchScreeningHitSummary`, `BatchScreeningResultByUid`, `BatchScreeningResponse`, `BatchRiskScoreRequest`, `RiskScoreResult`, `BatchRiskScoreResponse`
+- Person network: `NetworkPerson`, `NetworkCompany`, `CoDirectorCompany`, `CoDirector`, `NetworkStats`, `PersonNetworkResponse`, `BoardMemberParams`
+- Enriched watchlist: `WatchlistCompanyEntry`
+
+**Enrichment provenance fields** (all optional, backwards-compatible):
+
+- `Company.directParentLei`, `ultimateParentLei`, `ultimateParentName`, `gleifParentEnrichedAt` — GLEIF parent linkage
+- `Company.industrySource`, `industryConfidence`, `industryClassifiedAt` — industry-classification provenance
+- `Classification.industrySource`, `industryConfidence` — same on the classification endpoint
+- `Fingerprint.registrationDate` — Swiss register entry date
+- `BoardMember.roleSource`, `roleConfidence`, `roleInferredAt` — role extraction provenance
+- `PersonRoleDetail`, `PersonEntry`, `NetworkCompany` — same role provenance fields
+
+**Data-coverage disclosure:**
+
+- `UboResponse.dataCoverageNote` — explains when chain is incomplete
+- `FlowsResponse.dataCoverageNote` — surfaces asymmetric-accuracy notes (e.g. historical dissolution under-counting)
+
+**Documentation:**
+
+- Non-Swiss GLEIF parents appear as synthetic `LEI:<20-char-lei>` identifiers on
+  `UboPerson.controllingEntityUid`, `ChainLink.fromUid`/`toUid`, and
+  `OwnershipLink.sourceUid`/`targetUid`. Documented on each interface.
+
+### Changed
+
+- `HierarchyResponse.parent`/`subsidiaries`/`siblings` now use the typed `HierarchyEntity` interface instead of `unknown` — this is a typed-output improvement; callers using `parent as any` will get better type safety.
+- `WatchlistCompaniesResponse` now includes an optional typed `companies: WatchlistCompanyEntry[]` field alongside the existing `uids`. The server populates it with name/status/canton for each watched company.
+
+### Deprecated
+
+- `companies.exportExcel(request)` — kept as a deprecated alias for `exportCsv` (the endpoint has always returned CSV; the new name reflects reality). JSDoc `@deprecated` tag emits editor warnings. Will be removed in v4.0.
+
 ## 3.0.0 (2026-04-08)
 
 Major release aligning the TypeScript SDK with the Rust SDK (`vynco` v2.2.0) which has reached production state.

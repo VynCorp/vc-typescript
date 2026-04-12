@@ -19,14 +19,23 @@ import type {
   ExportFile,
   Fingerprint,
   HierarchyResponse,
+  MediaAnalysisResponse,
+  MediaParams,
+  MediaResponse,
   NearbyCompany,
   NearbyParams,
   NewsItem,
   Note,
   PagedResponse,
   Relationship,
+  SimilarCompaniesResponse,
+  SimilarParams,
   Tag,
   TagSummary,
+  TimelineParams,
+  TimelineResponse,
+  TimelineSummaryResponse,
+  UboResponse,
   UpdateNoteRequest,
 } from "../types.js";
 
@@ -216,13 +225,115 @@ export class Companies {
     return this.#client._request("GET", "/v1/tags");
   }
 
-  // -- Excel export --
+  // -- Timeline (v3.1+) --
 
-  async exportExcel(request: ExcelExportRequest): Promise<ExportFile> {
+  /** Get a chronological timeline of a company's changes. */
+  async timeline(
+    uid: string,
+    params?: TimelineParams,
+  ): Promise<VyncoResponse<TimelineResponse>> {
+    const path = `/v1/companies/${encodeURIComponent(uid)}/timeline`;
+    if (!params) return this.#client._request("GET", path);
+    const queryParams: Record<string, string> = {};
+    if (params.since != null) queryParams.since = params.since;
+    if (params.until != null) queryParams.until = params.until;
+    if (params.changeType != null) queryParams.changeType = params.changeType;
+    if (Object.keys(queryParams).length === 0) return this.#client._request("GET", path);
+    return this.#client._requestWithParams("GET", path, queryParams);
+  }
+
+  /** Get an AI-generated narrative summary of a company timeline. */
+  async timelineSummary(
+    uid: string,
+    params?: TimelineParams,
+  ): Promise<VyncoResponse<TimelineSummaryResponse>> {
+    const path = `/v1/companies/${encodeURIComponent(uid)}/timeline/summary`;
+    if (!params) return this.#client._request("GET", path);
+    const queryParams: Record<string, string> = {};
+    if (params.since != null) queryParams.since = params.since;
+    if (params.until != null) queryParams.until = params.until;
+    if (params.changeType != null) queryParams.changeType = params.changeType;
+    if (Object.keys(queryParams).length === 0) return this.#client._request("GET", path);
+    return this.#client._requestWithParams("GET", path, queryParams);
+  }
+
+  // -- Similar companies (v3.1+) --
+
+  /**
+   * Find companies scored by similarity on industry (40pts), canton (20pts),
+   * capital (20pts), legal form (10pts), and auditor tier (10pts).
+   */
+  async similar(
+    uid: string,
+    params?: SimilarParams,
+  ): Promise<VyncoResponse<SimilarCompaniesResponse>> {
+    const path = `/v1/companies/${encodeURIComponent(uid)}/similar`;
+    if (!params?.limit) return this.#client._request("GET", path);
+    return this.#client._requestWithParams("GET", path, {
+      limit: String(params.limit),
+    });
+  }
+
+  // -- UBO (v3.1+) --
+
+  /** Resolve the ultimate beneficial owner(s) of a company. */
+  async ubo(uid: string): Promise<VyncoResponse<UboResponse>> {
+    return this.#client._request(
+      "GET",
+      `/v1/companies/${encodeURIComponent(uid)}/ubo`,
+    );
+  }
+
+  // -- Media / News with sentiment (v3.1+) --
+
+  /**
+   * Get media/news items for a company, optionally filtered by sentiment.
+   *
+   * `params.sentiment` is one of `positive`, `neutral`, `negative`.
+   */
+  async media(
+    uid: string,
+    params?: MediaParams,
+  ): Promise<VyncoResponse<MediaResponse>> {
+    const path = `/v1/companies/${encodeURIComponent(uid)}/media`;
+    if (!params) return this.#client._request("GET", path);
+    const queryParams: Record<string, string> = {};
+    if (params.sentiment != null) queryParams.sentiment = params.sentiment;
+    if (params.since != null) queryParams.since = params.since;
+    if (params.limit != null) queryParams.limit = String(params.limit);
+    if (Object.keys(queryParams).length === 0) return this.#client._request("GET", path);
+    return this.#client._requestWithParams("GET", path, queryParams);
+  }
+
+  /** Trigger LLM sentiment analysis on unanalyzed media items for a company. */
+  async mediaAnalyze(uid: string): Promise<VyncoResponse<MediaAnalysisResponse>> {
+    return this.#client._request(
+      "POST",
+      `/v1/companies/${encodeURIComponent(uid)}/media/analyze`,
+    );
+  }
+
+  // -- CSV / Excel export --
+
+  /**
+   * Export companies as CSV.
+   *
+   * This is the canonical name; {@link Companies.exportExcel} is kept as a
+   * deprecated alias. The endpoint currently emits `text/csv`.
+   */
+  async exportCsv(request: ExcelExportRequest): Promise<ExportFile> {
     return this.#client._requestBytesWithBody(
       "POST",
       "/v1/companies/export/excel",
       request,
     );
+  }
+
+  /**
+   * @deprecated Use {@link Companies.exportCsv} instead. The server returns
+   * CSV, not Excel. Will be removed in v4.0.
+   */
+  async exportExcel(request: ExcelExportRequest): Promise<ExportFile> {
+    return this.exportCsv(request);
   }
 }

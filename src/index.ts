@@ -26,6 +26,7 @@ export type { ErrorBody } from "./errors.js";
 // Resources
 export {
   Ai,
+  Alerts,
   Analytics,
   ApiKeys,
   Auditors,
@@ -38,6 +39,7 @@ export {
   Exports,
   Graph,
   Health,
+  Ownership,
   Persons,
   Screening,
   Teams,
@@ -68,6 +70,7 @@ export type {
   NewsItem,
   CompanyReport,
   Relationship,
+  HierarchyEntity,
   HierarchyResponse,
   Fingerprint,
   NearbyCompany,
@@ -111,6 +114,7 @@ export type {
   AddCompaniesRequest,
   AddCompaniesResponse,
   WatchlistCompaniesResponse,
+  WatchlistCompanyEntry,
   // Webhooks
   WebhookSubscription,
   CreateWebhookRequest,
@@ -162,10 +166,18 @@ export type {
   ChangeStatistics,
   // Persons
   BoardMember,
+  BoardMemberParams,
   PersonSearchParams,
   PersonSearchResult,
   PersonDetail,
   PersonRoleDetail,
+  // Person network (v3.1+)
+  PersonNetworkResponse,
+  NetworkPerson,
+  NetworkCompany,
+  NetworkStats,
+  CoDirector,
+  CoDirectorCompany,
   // Analytics
   CantonDistribution,
   AuditorMarketShare,
@@ -192,4 +204,52 @@ export type {
   NetworkAnalysisRequest,
   NetworkAnalysisResponse,
   NetworkCluster,
+  // --- v3.1+ surface ---
+  // Timeline
+  TimelineParams,
+  TimelineEvent,
+  TimelineResponse,
+  TimelineSummaryResponse,
+  // Similar
+  SimilarParams,
+  SimilarCompanyResult,
+  SimilarCompaniesResponse,
+  // UBO / Ownership
+  UboPerson,
+  ChainLink,
+  UboResponse,
+  OwnershipRequest,
+  OwnershipEntity,
+  OwnershipLink,
+  PersonCompanyRole,
+  KeyPerson,
+  CircularFlag,
+  OwnershipResponse,
+  // Media
+  MediaParams,
+  MediaItem,
+  MediaResponse,
+  MediaAnalysisResponse,
+  // Alerts
+  Alert,
+  CreateAlertRequest,
+  // Analytics extensions
+  FlowsParams,
+  FlowDataPoint,
+  FlowsResponse,
+  MigrationsParams,
+  MigrationFlow,
+  MigrationResponse,
+  BenchmarkParams,
+  BenchmarkDimension,
+  BenchmarkResponse,
+  // Batch screening
+  BatchScreeningRequest,
+  BatchScreeningHitSummary,
+  BatchScreeningResultByUid,
+  BatchScreeningResponse,
+  // Batch risk score
+  BatchRiskScoreRequest,
+  RiskScoreResult,
+  BatchRiskScoreResponse,
 } from "./types.js";

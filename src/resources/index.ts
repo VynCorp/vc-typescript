@@ -1,4 +1,5 @@
 export { Ai } from "./ai.js";
+export { Alerts } from "./alerts.js";
 export { Analytics } from "./analytics.js";
 export { ApiKeys } from "./api-keys.js";
 export { Auditors } from "./auditors.js";
@@ -11,6 +12,7 @@ export { Dossiers } from "./dossiers.js";
 export { Exports } from "./exports.js";
 export { Graph } from "./graph.js";
 export { Health } from "./health.js";
+export { Ownership } from "./ownership.js";
 export { Persons } from "./persons.js";
 export { Screening } from "./screening.js";
 export { Teams } from "./teams.js";

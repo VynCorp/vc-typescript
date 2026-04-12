@@ -58,6 +58,21 @@ export interface Company {
   oldNames?: string[];
   translations?: string[];
   updatedAt?: string;
+  // Enrichment provenance (v3.1+)
+  /** GLEIF-sourced direct parent LEI. */
+  directParentLei?: string;
+  /** GLEIF-sourced ultimate parent LEI. Non-Swiss parents appear as `LEI:<20-char-lei>`. */
+  ultimateParentLei?: string;
+  /** Cached name of the ultimate parent. */
+  ultimateParentName?: string;
+  /** Timestamp when GLEIF parent enrichment last ran. */
+  gleifParentEnrichedAt?: string;
+  /** Source of the industry classification: `"zefix"`, `"keyword_match"`, or `"llm"`. */
+  industrySource?: string;
+  /** Confidence (0–1) for LLM-classified industries. */
+  industryConfidence?: number;
+  /** Timestamp when the industry classification was last computed. */
+  industryClassifiedAt?: string;
 }
 
 export interface CompanyListParams {
@@ -102,6 +117,10 @@ export interface PersonEntry {
   role: string;
   since?: string;
   until?: string;
+  // Enrichment provenance (v3.1+)
+  roleSource?: string;
+  roleConfidence?: number;
+  roleInferredAt?: string;
 }
 
 export interface ChangeEntry {
@@ -187,10 +206,18 @@ export interface Relationship {
   sharedPersons: string[];
 }
 
+export interface HierarchyEntity {
+  uid: string;
+  name: string;
+  confidence?: string;
+  sharedPersonCount?: number;
+  sharedPersons?: string[];
+}
+
 export interface HierarchyResponse {
-  parent?: unknown;
-  subsidiaries: unknown[];
-  siblings: unknown[];
+  parent?: HierarchyEntity;
+  subsidiaries: HierarchyEntity[];
+  siblings: HierarchyEntity[];
 }
 
 export interface Fingerprint {
@@ -215,6 +242,8 @@ export interface Fingerprint {
   subsidiaryCount: number;
   generatedAt: string;
   fingerprintVersion: string;
+  /** Swiss register entry date (v3.1+). */
+  registrationDate?: string;
 }
 
 export interface NearbyCompany {
@@ -248,6 +277,9 @@ export interface Classification {
   classifiedAt: string;
   auditorCategory?: string;
   isFinmaRegulated: boolean;
+  // Enrichment provenance (v3.1+)
+  industrySource?: string;
+  industryConfidence?: number;
 }
 
 // --- Corporate Structure ---
@@ -456,8 +488,17 @@ export interface CreateWatchlistRequest {
   description?: string;
 }
 
+export interface WatchlistCompanyEntry {
+  uid: string;
+  name?: string;
+  status?: string;
+  canton?: string;
+}
+
 export interface WatchlistCompaniesResponse {
   uids: string[];
+  /** Enriched company entries with name/status/canton (v3.1+). */
+  companies?: WatchlistCompanyEntry[];
 }
 
 export interface AddCompaniesRequest {
@@ -792,6 +833,15 @@ export interface BoardMember {
   residence?: string;
   signingAuthority?: string;
   since?: string;
+  // Enrichment provenance (v3.1+)
+  roleSource?: string;
+  roleConfidence?: number;
+  roleInferredAt?: string;
+}
+
+export interface BoardMemberParams {
+  page?: number;
+  pageSize?: number;
 }
 
 export interface PersonSearchParams {
@@ -831,6 +881,10 @@ export interface PersonRoleDetail {
   endDate?: string;
   changeAction?: string;
   isCurrent?: boolean;
+  // Enrichment provenance (v3.1+)
+  roleSource?: string;
+  roleConfidence?: number;
+  roleInferredAt?: string;
 }
 
 // --- Analytics ---
@@ -985,4 +1039,361 @@ export interface NetworkCluster {
   id: number;
   companyUids: string[];
   sharedPersons: string[];
+}
+
+// ===========================================================================
+// v3.1+ surface
+// ===========================================================================
+
+// --- Timeline ---
+
+export interface TimelineParams {
+  since?: string;
+  until?: string;
+  changeType?: string;
+}
+
+export interface TimelineEvent {
+  id: string;
+  category: string;
+  fieldName?: string;
+  oldValue?: string;
+  newValue?: string;
+  summary?: string;
+  source?: string;
+  severity?: string;
+  date: string;
+}
+
+export interface TimelineResponse {
+  uid: string;
+  companyName: string;
+  events: TimelineEvent[];
+  totalEvents: number;
+}
+
+export interface TimelineSummaryResponse {
+  uid: string;
+  companyName: string;
+  summary: string;
+  eventCount: number;
+  generatedAt: string;
+}
+
+// --- Similar companies ---
+
+export interface SimilarParams {
+  limit?: number;
+}
+
+export interface SimilarCompanyResult {
+  uid: string;
+  name: string;
+  canton?: string;
+  industry?: string;
+  legalForm?: string;
+  shareCapital?: number;
+  status?: string;
+  similarityScore: number;
+  matchingDimensions: string[];
+}
+
+export interface SimilarCompaniesResponse {
+  companyUid: string;
+  companyName: string;
+  results: SimilarCompanyResult[];
+}
+
+// --- UBO / Ownership ---
+//
+// Non-Swiss parent entities resolved via GLEIF appear with synthetic
+// identifiers of the form `LEI:<20-char-lei>` in the *Uid fields below.
+// These are NOT resolvable via `companies.get()`.
+
+export interface UboPerson {
+  personId: number;
+  name: string;
+  controllingEntityUid: string;
+  controllingEntityName: string;
+  role: string;
+  signingAuthority?: string;
+  pathLength: number;
+}
+
+export interface ChainLink {
+  fromUid: string;
+  fromName: string;
+  toUid: string;
+  toName: string;
+  depth: number;
+}
+
+export interface UboResponse {
+  uid: string;
+  companyName: string;
+  uboPersons: UboPerson[];
+  ownershipChain: ChainLink[];
+  chainDepth: number;
+  riskFlags: string[];
+  /** Human-readable explanation when the chain can't be fully resolved. */
+  dataCoverageNote?: string;
+}
+
+export interface OwnershipRequest {
+  maxDepth?: number;
+}
+
+export interface OwnershipEntity {
+  uid: string;
+  name: string;
+  canton?: string;
+  status?: string;
+  legalForm?: string;
+  shareCapital?: number;
+}
+
+export interface OwnershipLink {
+  sourceUid: string;
+  sourceName: string;
+  targetUid: string;
+  targetName: string;
+  /** `head_office` | `branch_office` | `acquisition` | `gleif_parent`. */
+  relationshipType: string;
+  depth: number;
+}
+
+export interface PersonCompanyRole {
+  companyUid: string;
+  companyName: string;
+  role: string;
+}
+
+export interface KeyPerson {
+  name: string;
+  companies: PersonCompanyRole[];
+}
+
+export interface CircularFlag {
+  loopUids: string[];
+  description: string;
+}
+
+export interface OwnershipResponse {
+  uid: string;
+  companyName: string;
+  ownershipChain: OwnershipLink[];
+  ultimateParent?: OwnershipEntity;
+  keyPersons: KeyPerson[];
+  circularFlags: CircularFlag[];
+  riskLevel: string;
+  assessedAt: string;
+}
+
+// --- Media ---
+
+export interface MediaParams {
+  /** `positive` | `neutral` | `negative`. */
+  sentiment?: string;
+  since?: string;
+  limit?: number;
+}
+
+export interface MediaItem {
+  id: string;
+  title: string;
+  summary?: string;
+  source?: string;
+  publishedAt?: string;
+  url?: string;
+  sentimentScore?: number;
+  sentimentLabel?: string;
+  topics?: string[];
+  riskRelevance?: number;
+}
+
+export interface MediaResponse {
+  items: MediaItem[];
+  total: number;
+}
+
+export interface MediaAnalysisResponse {
+  analyzedCount: number;
+  message: string;
+}
+
+// --- Alerts ---
+
+export interface Alert {
+  id: string;
+  name: string;
+  queryParams: unknown;
+  webhookUrl?: string;
+  frequency: string;
+  isActive: boolean;
+  savedSearchId?: string;
+  lastTriggeredAt?: string;
+  lastResultCount?: number;
+  triggerCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateAlertRequest {
+  name: string;
+  queryParams: unknown;
+  webhookUrl?: string;
+  /** `hourly` | `daily` | `weekly`. Defaults to `daily` on the server. */
+  frequency?: string;
+  savedSearchId?: string;
+}
+
+// --- Analytics: flows, migrations, benchmark ---
+
+export interface FlowsParams {
+  /** `monthly` (default) | `quarterly` | `yearly`. */
+  period?: string;
+  since?: string;
+  /** `canton` (default) | `industry` | `legalForm`. */
+  groupBy?: string;
+}
+
+export interface FlowDataPoint {
+  period: string;
+  group: string;
+  registrations: number;
+  dissolutions: number;
+  net: number;
+}
+
+export interface FlowsResponse {
+  flows: FlowDataPoint[];
+  /** Surfaces asymmetric-accuracy notes (e.g. historical dissolution under-counting). */
+  dataCoverageNote?: string;
+}
+
+export interface MigrationsParams {
+  since?: string;
+}
+
+export interface MigrationFlow {
+  fromCanton: string;
+  toCanton: string;
+  count: number;
+}
+
+export interface MigrationResponse {
+  flows: MigrationFlow[];
+  topFlows: MigrationFlow[];
+}
+
+export interface BenchmarkParams {
+  /** Comma-separated dimensions (e.g. `"capital,board_size"`). Omit for all. */
+  dimensions?: string;
+}
+
+export interface BenchmarkDimension {
+  name: string;
+  companyValue: number;
+  industryMedian: number;
+  percentile: number;
+}
+
+export interface BenchmarkResponse {
+  uid: string;
+  companyName: string;
+  industry?: string;
+  peerCount: number;
+  dimensions: BenchmarkDimension[];
+}
+
+// --- Batch screening ---
+
+export interface BatchScreeningRequest {
+  /** Up to 100 UIDs per call. */
+  uids: string[];
+}
+
+export interface BatchScreeningHitSummary {
+  source: string;
+  matchedName: string;
+  score: number;
+}
+
+export interface BatchScreeningResultByUid {
+  uid: string;
+  companyName: string;
+  riskLevel: string;
+  totalHits: number;
+  sourcesChecked: string[];
+  hits: BatchScreeningHitSummary[];
+}
+
+export interface BatchScreeningResponse {
+  results: BatchScreeningResultByUid[];
+}
+
+// --- Batch risk score ---
+
+export interface BatchRiskScoreRequest {
+  /** Up to 50 UIDs per call. */
+  uids: string[];
+}
+
+export interface RiskScoreResult {
+  uid: string;
+  companyName: string;
+  overallScore: number;
+  riskLevel: string;
+}
+
+export interface BatchRiskScoreResponse {
+  results: RiskScoreResult[];
+}
+
+// --- Person network ---
+
+export interface NetworkPerson {
+  id: string;
+  fullName: string;
+  firstName?: string;
+  lastName?: string;
+}
+
+export interface NetworkCompany {
+  uid: string;
+  name?: string;
+  role: string;
+  roleCategory: string;
+  isCurrent?: boolean;
+  since?: string;
+  until?: string;
+  // Enrichment provenance (v3.1+)
+  roleSource?: string;
+  roleConfidence?: number;
+  roleInferredAt?: string;
+}
+
+export interface CoDirectorCompany {
+  uid: string;
+  name?: string;
+}
+
+export interface CoDirector {
+  personId: string;
+  name: string;
+  sharedCompanies: number;
+  companies: CoDirectorCompany[];
+}
+
+export interface NetworkStats {
+  totalCompanies: number;
+  activeRoles: number;
+  coDirectorCount: number;
+}
+
+export interface PersonNetworkResponse {
+  person: NetworkPerson;
+  companies: NetworkCompany[];
+  coDirectors: CoDirector[];
+  stats: NetworkStats;
 }

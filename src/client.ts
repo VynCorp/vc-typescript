@@ -17,6 +17,7 @@ import { type ResponseMeta, type VyncoResponse, parseResponseMeta } from "./resp
 import type { ExportFile } from "./types.js";
 import {
   Ai,
+  Alerts,
   Analytics,
   ApiKeys,
   Auditors,
@@ -29,6 +30,7 @@ import {
   Exports,
   Graph,
   Health,
+  Ownership,
   Persons,
   Screening,
   Teams,
@@ -36,7 +38,7 @@ import {
   Webhooks,
 } from "./resources/index.js";
 
-const VERSION = "3.0.0";
+const VERSION = "3.1.0";
 const DEFAULT_BASE_URL = "https://vynco.ch/api";
 const DEFAULT_TIMEOUT = 30_000;
 const DEFAULT_MAX_RETRIES = 2;
@@ -73,6 +75,8 @@ export class VyncoClient {
   readonly analytics: Analytics;
   readonly dossiers: Dossiers;
   readonly graph: Graph;
+  readonly alerts: Alerts;
+  readonly ownership: Ownership;
 
   constructor(options: VyncoClientOptions) {
     if (!options.apiKey) {
@@ -102,6 +106,8 @@ export class VyncoClient {
     this.analytics = new Analytics(this);
     this.dossiers = new Dossiers(this);
     this.graph = new Graph(this);
+    this.alerts = new Alerts(this);
+    this.ownership = new Ownership(this);
   }
 
   /** @internal */
