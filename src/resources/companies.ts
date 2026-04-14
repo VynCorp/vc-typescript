@@ -65,6 +65,9 @@ export class Companies {
     if (params.sortDesc != null) queryParams.sortDesc = String(params.sortDesc);
     if (params.page != null) queryParams.page = String(params.page);
     if (params.pageSize != null) queryParams.pageSize = String(params.pageSize);
+    if (params.lei != null) queryParams.lei = params.lei;
+    if (params.duns != null) queryParams.duns = params.duns;
+    if (params.isin != null) queryParams.isin = params.isin;
     return this.#client._requestWithParams("GET", "/v1/companies", queryParams);
   }
 

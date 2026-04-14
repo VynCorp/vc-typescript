@@ -1,6 +1,6 @@
 import type { VyncoClient } from "../client.js";
 import type { VyncoResponse } from "../response.js";
-import type { CreateExportRequest, ExportDownload, ExportFile, ExportJob } from "../types.js";
+import type { BulkProfilesRequest, CreateExportRequest, ExportDownload, ExportFile, ExportJob } from "../types.js";
 
 export class Exports {
   #client: VyncoClient;
@@ -16,6 +16,10 @@ export class Exports {
 
   async get(id: string): Promise<VyncoResponse<ExportDownload>> {
     return this.#client._request("GET", `/v1/exports/${encodeURIComponent(id)}`);
+  }
+
+  async bulkProfiles(request: BulkProfilesRequest): Promise<VyncoResponse<ExportJob>> {
+    return this.#client._requestWithBody("POST", "/v1/exports/bulk-profiles", request);
   }
 
   async download(id: string): Promise<ExportFile> {

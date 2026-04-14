@@ -73,6 +73,13 @@ export interface Company {
   industryConfidence?: number;
   /** Timestamp when the industry classification was last computed. */
   industryClassifiedAt?: string;
+  // External identifiers
+  /** Legal Entity Identifier. */
+  lei?: string;
+  /** D-U-N-S Number. */
+  duns?: string;
+  /** International Securities Identification Number. */
+  isin?: string;
 }
 
 export interface CompanyListParams {
@@ -88,6 +95,9 @@ export interface CompanyListParams {
   sortDesc?: boolean;
   page?: number;
   pageSize?: number;
+  lei?: string;
+  duns?: string;
+  isin?: string;
 }
 
 export interface CompanyCount {
@@ -819,6 +829,32 @@ export interface ChangeStatistics {
   changesThisWeek: number;
   changesThisMonth: number;
   byType: unknown;
+}
+
+// --- Company Diff ---
+
+export interface DiffEntry {
+  field: string;
+  from?: string;
+  to?: string;
+  changedAt: string;
+  changeType: string;
+}
+
+export interface CompanyDiffResponse {
+  uid: string;
+  since: string;
+  until: string;
+  changes: DiffEntry[];
+  totalChanges: number;
+}
+
+// --- Bulk Profiles Export ---
+
+export interface BulkProfilesRequest {
+  uids: string[];
+  includeTimeline?: boolean;
+  includeBoard?: boolean;
 }
 
 // --- Persons ---

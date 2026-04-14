@@ -4,6 +4,7 @@ import type {
   ChangeListParams,
   ChangeStatistics,
   CompanyChange,
+  CompanyDiffResponse,
   PagedResponse,
 } from "../types.js";
 
@@ -42,6 +43,21 @@ export class Changes {
     return this.#client._requestEmpty(
       "PUT",
       `/v1/changes/${encodeURIComponent(id)}/review`,
+    );
+  }
+
+  /** Get a field-level diff for a company between two dates. */
+  async diff(
+    uid: string,
+    since: string,
+    until?: string,
+  ): Promise<VyncoResponse<CompanyDiffResponse>> {
+    const queryParams: Record<string, string> = { since };
+    if (until != null) queryParams.until = until;
+    return this.#client._requestWithParams(
+      "GET",
+      `/v1/companies/${encodeURIComponent(uid)}/diff`,
+      queryParams,
     );
   }
 }

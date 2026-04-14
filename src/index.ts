@@ -167,6 +167,10 @@ export type {
   CompanyChange,
   ChangeListParams,
   ChangeStatistics,
+  DiffEntry,
+  CompanyDiffResponse,
+  // Bulk Profiles Export
+  BulkProfilesRequest,
   // Persons
   BoardMember,
   BoardMemberParams,
