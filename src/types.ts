@@ -1293,9 +1293,11 @@ export interface BenchmarkParams {
 
 export interface BenchmarkDimension {
   name: string;
-  companyValue: number;
-  industryMedian: number;
-  percentile: number;
+  companyValue?: number;
+  industryMedian?: number;
+  percentile?: number;
+  /** How many peers have non-null data for this dimension. */
+  peersWithData?: number;
 }
 
 export interface BenchmarkResponse {
