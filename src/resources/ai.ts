@@ -7,6 +7,10 @@ import type {
   AiSearchResponse,
   BatchRiskScoreRequest,
   BatchRiskScoreResponse,
+  ComparativeRequest,
+  ComparativeResponse,
+  PredictiveRiskRequest,
+  PredictiveRiskResponse,
   RiskScoreRequest,
   RiskScoreResponse,
 } from "../types.js";
@@ -36,5 +40,19 @@ export class Ai {
     request: BatchRiskScoreRequest,
   ): Promise<VyncoResponse<BatchRiskScoreResponse>> {
     return this.#client._requestWithBody("POST", "/v1/ai/risk-score/batch", request);
+  }
+
+  /** Generate an AI comparative dossier for 2-5 companies. */
+  async comparative(request: ComparativeRequest): Promise<VyncoResponse<ComparativeResponse>> {
+    return this.#client._requestWithBody("POST", "/v1/ai/comparative", request);
+  }
+
+  /** Get predictive risk scoring with dissolution probability. */
+  async predictiveRisk(
+    uid: string,
+    request?: PredictiveRiskRequest,
+  ): Promise<VyncoResponse<PredictiveRiskResponse>> {
+    const path = `/v1/risk/predictive/${encodeURIComponent(uid)}`;
+    return this.#client._requestWithBody("POST", path, request ?? {});
   }
 }

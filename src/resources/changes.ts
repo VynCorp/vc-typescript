@@ -1,5 +1,5 @@
 import type { VyncoClient } from "../client.js";
-import type { VyncoResponse } from "../response.js";
+import type { ResponseMeta, VyncoResponse } from "../response.js";
 import type {
   ChangeListParams,
   ChangeStatistics,
@@ -35,5 +35,13 @@ export class Changes {
 
   async statistics(): Promise<VyncoResponse<ChangeStatistics>> {
     return this.#client._request("GET", "/v1/changes/statistics");
+  }
+
+  /** Mark a change as reviewed (compliance workflow). */
+  async review(id: string): Promise<ResponseMeta> {
+    return this.#client._requestEmpty(
+      "PUT",
+      `/v1/changes/${encodeURIComponent(id)}/review`,
+    );
   }
 }

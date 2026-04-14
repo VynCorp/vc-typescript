@@ -32,6 +32,9 @@ import {
   Health,
   Ownership,
   Persons,
+  Pipelines,
+  Reports,
+  SavedSearches,
   Screening,
   Teams,
   Watchlists,
@@ -77,6 +80,9 @@ export class VyncoClient {
   readonly graph: Graph;
   readonly alerts: Alerts;
   readonly ownership: Ownership;
+  readonly reports: Reports;
+  readonly pipelines: Pipelines;
+  readonly savedSearches: SavedSearches;
 
   constructor(options: VyncoClientOptions) {
     if (!options.apiKey) {
@@ -108,6 +114,9 @@ export class VyncoClient {
     this.graph = new Graph(this);
     this.alerts = new Alerts(this);
     this.ownership = new Ownership(this);
+    this.reports = new Reports(this);
+    this.pipelines = new Pipelines(this);
+    this.savedSearches = new SavedSearches(this);
   }
 
   /** @internal */

@@ -1399,3 +1399,339 @@ export interface PersonNetworkResponse {
   coDirectors: CoDirector[];
   stats: NetworkStats;
 }
+
+// ===========================================================================
+// Comparative AI
+// ===========================================================================
+
+export interface ComparativeRequest {
+  uids: string[];
+  focus?: string;
+}
+
+export interface OverlapCompanyRole {
+  uid: string;
+  companyName: string;
+  role: string;
+}
+
+export interface BoardOverlap {
+  personName: string;
+  companies: OverlapCompanyRole[];
+}
+
+export interface CompAuditorEntry {
+  auditorName: string;
+  companyCount: number;
+  companyUids: string[];
+  groupShare: number;
+}
+
+export interface AuditorAnalysis {
+  auditorDistribution: CompAuditorEntry[];
+  uniqueAuditorCount: number;
+  concentrationFlag: boolean;
+}
+
+export interface GovernanceFactor {
+  factor: string;
+  score: number;
+  description: string;
+}
+
+export interface GovernanceScore {
+  uid: string;
+  companyName: string;
+  score: number;
+  factors: GovernanceFactor[];
+}
+
+export interface ComparativeResponse {
+  uids: string[];
+  focus: string;
+  report: string;
+  boardOverlaps: BoardOverlap[];
+  auditorAnalysis?: AuditorAnalysis;
+  governanceScores: GovernanceScore[];
+  generatedAt: string;
+}
+
+// ===========================================================================
+// Predictive Risk
+// ===========================================================================
+
+export interface PredictiveRiskRequest {
+  lookbackDays?: number;
+}
+
+export interface PredictiveRiskIndicator {
+  signal: string;
+  triggered: boolean;
+  weight: number;
+  contribution: number;
+  severity: string;
+  description: string;
+}
+
+export interface PredictiveRiskResponse {
+  uid: string;
+  companyName: string;
+  dissolutionProbability: number;
+  riskLevel: string;
+  preDissolutionIndicators: PredictiveRiskIndicator[];
+  creditRiskScore: number;
+  recommendation: string;
+  assessedAt: string;
+}
+
+// ===========================================================================
+// PDF Profile
+// ===========================================================================
+
+export interface PdfBoardMember {
+  firstName?: string;
+  lastName?: string;
+  role: string;
+  signingAuthority?: string;
+  since?: string;
+  until?: string;
+}
+
+export interface PdfEvent {
+  id: string;
+  category: string;
+  summary: string;
+  severity: string;
+  detectedAt: string;
+  sourceDate?: string;
+}
+
+export interface PdfAuditorTenure {
+  auditorName: string;
+  appointedAt?: string;
+  resignedAt?: string;
+  tenureYears?: number;
+  isCurrent: boolean;
+}
+
+export interface PdfCompanyData {
+  uid: string;
+  name: string;
+  canton?: string;
+  status?: string;
+  legalForm?: string;
+  shareCapital?: number;
+  currency?: string;
+  purpose?: string;
+  foundingDate?: string;
+  registrationDate?: string;
+  legalSeat?: string;
+  municipality?: string;
+  addressStreet?: string;
+  addressHouseNumber?: string;
+  addressZipCode?: string;
+  addressCity?: string;
+  website?: string;
+  industry?: string;
+  subIndustry?: string;
+  employeeCount?: number;
+  auditorName?: string;
+  auditorCategory?: string;
+  sanctionsHit?: boolean;
+  isFinmaRegulated?: boolean;
+  oldNames?: string[];
+  translations?: string[];
+}
+
+export interface PdfProfileResponse {
+  company: PdfCompanyData;
+  boardMembers: PdfBoardMember[];
+  recentEvents: PdfEvent[];
+  auditorHistory: PdfAuditorTenure[];
+  generatedAt: string;
+}
+
+// ===========================================================================
+// Reports
+// ===========================================================================
+
+export interface IndustrySummary {
+  industry: string;
+  companyCount: number;
+}
+
+export interface IndustryListResponse {
+  industries: IndustrySummary[];
+  total: number;
+}
+
+export interface IndustryCompanyEntry {
+  uid: string;
+  name: string;
+  canton?: string;
+  shareCapital?: number;
+  status?: string;
+}
+
+export interface ReportCantonCount {
+  canton: string;
+  count: number;
+}
+
+export interface ReportAuditorCount {
+  auditorName: string;
+  count: number;
+}
+
+export interface StatusCount {
+  status: string;
+  count: number;
+}
+
+export interface IndustryReportResponse {
+  industry: string;
+  companyCount: number;
+  avgCapital?: number;
+  medianCapital?: number;
+  topCompanies: IndustryCompanyEntry[];
+  cantonDistribution: ReportCantonCount[];
+  recentChanges: number;
+  auditorConcentration: ReportAuditorCount[];
+  statusDistribution: StatusCount[];
+  generatedAt: string;
+}
+
+export interface GeneratedIndustryReport {
+  industry: string;
+  report: string;
+  sources: string[];
+  generatedAt: string;
+}
+
+// ===========================================================================
+// Sanctions
+// ===========================================================================
+
+export interface SanctionsSearchParams {
+  search?: string;
+  entityType?: string;
+  program?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface SanctionEntry {
+  secoId: string;
+  entityType: string;
+  name: string;
+  aliases: string[];
+  nationality?: string;
+  dateOfBirth?: string;
+  address?: string;
+  program: string;
+  listedSince?: string;
+  sourceUrl: string;
+}
+
+export interface SanctionsListResponse {
+  items: SanctionEntry[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+// ===========================================================================
+// Pipelines
+// ===========================================================================
+
+export interface Pipeline {
+  id: string;
+  teamId: string;
+  name: string;
+  stages: string[];
+  createdAt: number;
+}
+
+export interface PipelineEntry {
+  id: string;
+  pipelineId: string;
+  companyUid: string;
+  companyName: string;
+  canton?: string;
+  stage: string;
+  assignedToUserId?: string;
+  assignedToName?: string;
+  tier: number;
+  score?: number;
+  notes?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface PipelineWithEntries {
+  id: string;
+  teamId: string;
+  name: string;
+  stages: string[];
+  createdAt: number;
+  entries: PipelineEntry[];
+  totalEntries: number;
+}
+
+export interface PipelineStats {
+  byStage: Record<string, number>;
+  byTier: Record<string, number>;
+  total: number;
+}
+
+export interface CreatePipelineRequest {
+  name: string;
+  stages?: string[];
+}
+
+export interface AddEntryRequest {
+  companyUid: string;
+  stage?: string;
+  tier?: number;
+  assignedToUserId?: string;
+}
+
+export interface UpdateEntryRequest {
+  stage?: string;
+  tier?: number;
+  assignedToUserId?: string;
+  notes?: string;
+}
+
+// ===========================================================================
+// Saved Searches
+// ===========================================================================
+
+export interface SavedSearch {
+  id: string;
+  name: string;
+  description?: string;
+  searchParams: unknown;
+  isScheduled: boolean;
+  scheduleFrequency?: string;
+  lastRunAt?: string;
+  lastResultCount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateSavedSearchRequest {
+  name: string;
+  searchParams: unknown;
+  description?: string;
+  isScheduled?: boolean;
+  scheduleFrequency?: string;
+}
+
+export interface UpdateSavedSearchRequest {
+  name?: string;
+  description?: string;
+  searchParams?: unknown;
+  isScheduled?: boolean;
+  scheduleFrequency?: string;
+}

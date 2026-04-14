@@ -27,6 +27,7 @@ import type {
   NewsItem,
   Note,
   PagedResponse,
+  PdfProfileResponse,
   Relationship,
   SimilarCompaniesResponse,
   SimilarParams,
@@ -310,6 +311,16 @@ export class Companies {
     return this.#client._request(
       "POST",
       `/v1/companies/${encodeURIComponent(uid)}/media/analyze`,
+    );
+  }
+
+  // -- PDF profile (v3.1+) --
+
+  /** Get structured company profile data suitable for PDF rendering. */
+  async pdf(uid: string): Promise<VyncoResponse<PdfProfileResponse>> {
+    return this.#client._request(
+      "GET",
+      `/v1/companies/${encodeURIComponent(uid)}/pdf`,
     );
   }
 
